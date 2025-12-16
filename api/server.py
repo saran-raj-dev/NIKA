@@ -26,7 +26,10 @@ class NikaServer:
         self.poller.register(self.control_socket, zmq.POLLIN)
 
         # User-defined handlers
-        self.request_handler: Callable[[dict], dict] | None = None
+        self.request_handler = None
+
+        # ✅ REQUIRED: stream registry
+        self.active_streams: set[str] = set()
 
         print("NIKA server started")
         print(f"Control: {control_addr}")
@@ -34,6 +37,7 @@ class NikaServer:
 
         # ZMQ slow joiner fix
         time.sleep(1)
+
 
     # -----------------------
     # Public API
@@ -90,6 +94,19 @@ class NikaServer:
 
                 elif msg_type == PING:
                     self._pong(client_id, msg_id)
+                
+                elif msg_type == STREAM_START:
+                    stream = msg.get("stream")
+                    if stream:
+                        self.active_streams.add(stream)
+                        self._ack(client_id, msg_id, STREAM_START, stream)
+
+                elif msg_type == STREAM_STOP:
+                    stream = msg.get("stream")
+                    if stream:
+                        self.active_streams.discard(stream)
+                        self._ack(client_id, msg_id, STREAM_STOP, stream)
+
 
                 else:
                     self._error(client_id, msg_id, "Unknown message type")
@@ -157,3 +174,20 @@ class NikaServer:
                 "payload": {"error": reason}
             }).encode()
         ])
+        
+    def publish_stream(self, stream: str, seq: int, payload: dict):
+        if stream not in self.active_streams:
+            return
+
+        msg = {
+            "type": STREAM,
+            "stream": stream,
+            "seq": seq,
+            "payload": payload
+        }
+
+        self.event_socket.send_multipart([
+            f"stream:{stream}".encode(),
+            json.dumps(msg).encode()
+        ])
+

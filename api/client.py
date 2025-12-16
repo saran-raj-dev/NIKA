@@ -11,6 +11,9 @@ from .protocol import (
     UNSUBSCRIBE,
     PING,
     PONG,
+    STREAM_START,
+    STREAM_STOP,
+    STREAM,
 )
 
 class NikaClient:
@@ -21,36 +24,26 @@ class NikaClient:
         heartbeat_interval: int = 3,
         heartbeat_timeout: int = 10,
     ):
-        # ---------------------------
-        # ZeroMQ setup
-        # ---------------------------
         self.context = zmq.Context()
 
-        # Control socket (DEALER)
+        # Control socket
         self.control_socket = self.context.socket(zmq.DEALER)
         self.client_id = f"client-{uuid.uuid4()}"
         self.control_socket.setsockopt_string(zmq.IDENTITY, self.client_id)
         self.control_socket.connect(control_addr)
 
-        # Event socket (SUB)
+        # Event socket
         self.event_socket = self.context.socket(zmq.SUB)
         self.event_socket.connect(event_addr)
 
-        # Poller
         self.poller = zmq.Poller()
         self.poller.register(self.control_socket, zmq.POLLIN)
         self.poller.register(self.event_socket, zmq.POLLIN)
 
-        # ---------------------------
-        # User callbacks
-        # ---------------------------
         self.event_handler: Optional[Callable[[str, dict], None]] = None
         self.response_handler: Optional[Callable[[dict], None]] = None
         self.error_handler: Optional[Callable[[dict], None]] = None
 
-        # ---------------------------
-        # Heartbeat state
-        # ---------------------------
         self.heartbeat_interval = heartbeat_interval
         self.heartbeat_timeout = heartbeat_timeout
         self.last_ping_time = 0.0
@@ -58,33 +51,37 @@ class NikaClient:
 
         print(f"NIKA client started ({self.client_id})")
 
-    # ======================================================
+    # -----------------------
     # Public API
-    # ======================================================
+    # -----------------------
 
-    def request(self, payload: dict) -> str:
-        msg_id = str(uuid.uuid4())
-        self._send_control({
+    def request(self, payload: dict):
+        self._send({
             "type": REQUEST,
-            "id": msg_id,
+            "id": str(uuid.uuid4()),
             "payload": payload,
         })
-        return msg_id
 
     def subscribe(self, topic: str):
-        self._send_control({
+        self._send({
             "type": SUBSCRIBE,
             "id": str(uuid.uuid4()),
             "topic": topic,
         })
 
-    def unsubscribe(self, topic: str):
-        self._send_control({
-            "type": UNSUBSCRIBE,
+    def start_stream(self, stream: str):
+        self._send({
+            "type": STREAM_START,
             "id": str(uuid.uuid4()),
-            "topic": topic,
+            "stream": stream,
         })
-        self.event_socket.setsockopt_string(zmq.UNSUBSCRIBE, topic)
+
+    def stop_stream(self, stream: str):
+        self._send({
+            "type": STREAM_STOP,
+            "id": str(uuid.uuid4()),
+            "stream": stream,
+        })
 
     def on_event(self, handler: Callable[[str, dict], None]):
         self.event_handler = handler
@@ -95,27 +92,18 @@ class NikaClient:
     def on_error(self, handler: Callable[[dict], None]):
         self.error_handler = handler
 
-    # ======================================================
+    # -----------------------
     # Main loop
-    # ======================================================
+    # -----------------------
 
     def start(self):
         while True:
             now = time.time()
 
-            # ---------------------------
-            # Heartbeat
-            # ---------------------------
             if now - self.last_ping_time >= self.heartbeat_interval:
-                self._send_control({
-                    "type": PING,
-                    "id": str(uuid.uuid4()),
-                })
+                self._send({"type": PING, "id": str(uuid.uuid4())})
                 self.last_ping_time = now
 
-            # ---------------------------
-            # Poll sockets
-            # ---------------------------
             sockets = dict(self.poller.poll(timeout=1000))
 
             if self.control_socket in sockets:
@@ -124,18 +112,15 @@ class NikaClient:
             if self.event_socket in sockets:
                 self._handle_event()
 
-            # ---------------------------
-            # Heartbeat timeout detection
-            # ---------------------------
             if time.time() - self.last_pong_time > self.heartbeat_timeout:
                 raise RuntimeError("Server heartbeat lost")
 
-    # ======================================================
+    # -----------------------
     # Internal helpers
-    # ======================================================
+    # -----------------------
 
-    def _send_control(self, message: dict):
-        self.control_socket.send(json.dumps(message).encode())
+    def _send(self, msg: dict):
+        self.control_socket.send(json.dumps(msg).encode())
 
     def _handle_control(self):
         msg = json.loads(self.control_socket.recv().decode())
@@ -147,14 +132,17 @@ class NikaClient:
             return
 
         if msg_type == RESPONSE:
-            # ---- protocol state handling ----
             action = payload.get("action")
             topic = payload.get("topic")
 
             if action == SUBSCRIBE and topic:
                 self.event_socket.setsockopt_string(zmq.SUBSCRIBE, topic)
 
-            # ---- user callback ----
+            if action == STREAM_START and topic:
+                self.event_socket.setsockopt_string(
+                    zmq.SUBSCRIBE, f"stream:{topic}"
+                )
+
             if self.response_handler:
                 self.response_handler(msg)
             return
@@ -162,11 +150,15 @@ class NikaClient:
         if msg_type == ERROR:
             if self.error_handler:
                 self.error_handler(msg)
-            return
 
     def _handle_event(self):
-        topic, raw = self.event_socket.recv_multipart()
+        _, raw = self.event_socket.recv_multipart()
         event = json.loads(raw.decode())
 
-        if self.event_handler:
+        if not self.event_handler:
+            return
+
+        if event.get("type") == STREAM:
+            self.event_handler(event["stream"], event["payload"])
+        else:
             self.event_handler(event.get("topic"), event.get("payload"))
