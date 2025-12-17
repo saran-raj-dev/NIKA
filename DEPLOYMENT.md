@@ -24,7 +24,7 @@ NIKA is designed to run as a **single-node, in-memory protocol server**.
 
 ## 2. Runtime Requirements
 
-- Python 3.10+
+- Python 3.11
 - ZeroMQ (pyzmq)
 - Single process, single event loop
 - No shared state across instances

@@ -1,38 +1,41 @@
 # NIKA Protocol Specification — v0.1
 
 **Status:** Production (Internal)  
-**Version:** `1.0`  
+**Protocol Version:** 1.0  
 **Transport:** ZeroMQ (implementation detail)  
-**Delivery Model:** Live-first, best-effort
+**Delivery Model:** Live-first, best-effort  
 
 ---
 
 ## 1. Overview
 
-NIKA is a **live-first streaming protocol** designed for internal systems that require:
+NIKA is a **live-first messaging and streaming protocol** designed for internal systems that need:
 
-- Low-latency data delivery
-- High fan-out
-- Clear separation between **control**, **events**, and **streams**
-- Honest delivery guarantees (no hidden reliability promises)
+- Low-latency communication
+- Clear separation of concerns
+- Predictable behavior under load
+- Honest delivery semantics
 
-NIKA explicitly prioritizes **liveness over completeness**.
+NIKA explicitly prefers **liveness over reliability**.  
+If data is late, it is dropped. If a client is slow, it falls behind.
 
 ---
 
 ## 2. Core Principles
 
-- **Live-first:** Data represents what is happening *now*
-- **Loss is acceptable:** Dropped messages are expected and handled
-- **State is explicit:** System state is never inferred from streams
-- **Separation of concerns:** Control, events, and streams are independent
-- **No silent guarantees:** Only documented guarantees exist
+- **Live-first:** Messages represent *now*, not history
+- **Loss-tolerant:** Dropped data is expected and visible
+- **Explicit state:** State is never reconstructed from streams
+- **Separation of planes:** Control, Events, and Streams never overlap
+- **No hidden guarantees:** Only documented behavior is guaranteed
 
 ---
 
 ## 3. Interaction Models
 
-NIKA defines **three interaction models** with **non-overlapping responsibilities**.
+NIKA defines **three independent interaction models**.
+
+Each model solves a different problem and must not be mixed.
 
 ---
 
@@ -42,9 +45,9 @@ NIKA defines **three interaction models** with **non-overlapping responsibilitie
 
 - Commands
 - Queries
-- Metadata
 - Configuration
 - Health & diagnostics
+- Metadata
 
 ### Characteristics
 
@@ -100,14 +103,14 @@ NIKA defines **three interaction models** with **non-overlapping responsibilitie
 ### Guarantees
 
 - At-most-once execution per request ID
-- Safe retries (idempotent)
+- Safe retries (idempotency enforced server-side)
 - Deterministic responses
 - No side effects on duplicate requests
 
-### Non-Guarantees
+### Explicit Non-Guarantees
 
-- No long-running jobs
 - No streaming data
+- No background jobs
 - No implicit state mutation
 
 ---
@@ -117,14 +120,26 @@ NIKA defines **three interaction models** with **non-overlapping responsibilitie
 ### Purpose
 
 - Broadcast notifications
-- Lightweight system events
+- System-wide signals
 - Non-critical updates
 
 ### Characteristics
 
-- Best-effort delivery
 - Fire-and-forget
 - Fan-out semantics
+- Best-effort delivery
+
+### Message Format
+
+```json
+{
+  "type": "EVENT",
+  "payload": {
+    "topic": "alerts",
+    "data": {}
+  }
+}
+```
 
 ### Guarantees
 
@@ -138,7 +153,7 @@ NIKA defines **three interaction models** with **non-overlapping responsibilitie
 - No ordering guarantee
 - No state reconstruction
 
-> **PUB/SUB is a firehose, not a database.**
+> PUB/SUB is a firehose, not a database.
 
 ---
 
@@ -146,18 +161,17 @@ NIKA defines **three interaction models** with **non-overlapping responsibilitie
 
 ### Purpose
 
-- High-frequency live data
-- Telemetry
-- Sensor streams
+- High-frequency telemetry
+- Live metrics
+- Sensor data
 - Real-time dashboards
 
 ### Characteristics
 
 - Live-only
 - Per-stream rate limits
-- Per-client adaptive throttling
+- Per-client throttling
 - Drop-tolerant
-- Client health feedback
 
 ### Stream Message Format
 
@@ -181,27 +195,27 @@ NIKA defines **three interaction models** with **non-overlapping responsibilitie
 ### Client Responsibilities
 
 - Track sequence numbers
-- Detect and tolerate gaps
-- Report drops via `STREAM_STATS`
+- Detect gaps
+- Tolerate loss
 - Never assume completeness
 
 ### Explicit Non-Guarantees
 
 - No replay
 - No persistence
-- No ordering across clients
+- No global ordering
 - No state reconstruction
 
-> **Streams optimize for “now”, not “then”.**
+> Streams optimize for **now**, not **then**.
 
 ---
 
 ## 4. Authentication
 
-- Authentication occurs **once** during `CLIENT_JOIN`
+- Authentication occurs once via `CLIENT_JOIN`
 - API-key based
-- Identity bound to connection
-- No per-message secrets
+- Identity is bound to the connection
+- No per-message authentication
 
 ### CLIENT_JOIN Example
 
@@ -216,32 +230,29 @@ NIKA defines **three interaction models** with **non-overlapping responsibilitie
 }
 ```
 
-After successful authentication:
-
-- All control, event, and stream operations are implicitly authorized
-- Unauthenticated messages are rejected
+Unauthenticated messages are rejected.
 
 ---
 
 ## 5. Authorization
 
-- Authorization is enforced server-side
-- Stream access may be restricted via ACLs
-- Unauthorized stream subscriptions are rejected
+- Enforced server-side
+- Stream access controlled via ACLs
+- Unauthorized stream requests are rejected explicitly
 
 ---
 
 ## 6. Versioning
 
-- Protocol version is declared via the `nika` field
-- Server rejects unsupported versions
-- No silent downgrade or compatibility fallback
+- Protocol version declared via `nika`
+- Unsupported versions are rejected
+- No silent downgrade
 
 ---
 
 ## 7. Error Model
 
-All errors follow a **single, consistent schema**.
+All errors follow a single schema:
 
 ```json
 {
@@ -253,26 +264,26 @@ All errors follow a **single, consistent schema**.
 }
 ```
 
-Errors are **explicit**, **deterministic**, and **non-recoverable unless stated**.
+Errors are explicit and deterministic.
 
 ---
 
 ## 8. Limits & Guardrails
 
-NIKA enforces operational limits to prevent misuse:
+Implementations enforce:
 
 - Maximum concurrent clients
 - Maximum streams per client
 - Request idempotency cache with TTL
-- Server-side throttling and drop control
+- Throttling and drop control
 
-Limits are implementation-defined and may vary by deployment.
+Limits are deployment-specific.
 
 ---
 
 ## 9. Explicit Non-Goals (v0.1)
 
-The following are **intentionally out of scope**:
+The following are intentionally out of scope:
 
 - Guaranteed delivery
 - Persistence
@@ -284,28 +295,28 @@ The following are **intentionally out of scope**:
 
 ---
 
-## 10. Production Scope
+## 10. Intended Usage
 
 ### Supported
 
 - Internal services
-- Trusted clients
-- IoT & telemetry systems
-- Dashboards & monitoring
+- IoT & telemetry pipelines
+- Dashboards
+- Monitoring systems
 
 ### Not Supported
 
 - Untrusted public clients
-- Internet-facing APIs
 - Compliance-critical workloads
+- Historical data systems
 
 ---
 
 ## 11. Contract Statement
 
-> **If a behavior is not explicitly documented here, it is NOT guaranteed.**
+> If a behavior is not explicitly documented here, it is **not guaranteed**.
 
-This document is the **authoritative contract** for NIKA v0.1.
+This document is the authoritative contract for **NIKA v0.1**.
 
 ---
 
