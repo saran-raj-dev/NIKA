@@ -1,28 +1,21 @@
-from api.server import NikaServer
 import time
 import threading
-import random
+from api.server import NikaServer
 
 server = NikaServer()
 
-print("PUB SERVER started (random numbers)")
+print("PUB server running...")
 
 def publish_loop():
-    counter = 0
+    i = 0
     while True:
-        payload = {
-            "seq": counter,
-            "value": random.randint(1, 100)
-        }
-
-        print("SERVER publishing:", payload)
-        server.publish("numbers", payload)
-
-        counter += 1
+        server.publish(
+            topic="alerts",
+            payload={"level": "info", "count": i}
+        )
+        i += 1
         time.sleep(1)
 
-# Start publisher in background
 threading.Thread(target=publish_loop, daemon=True).start()
 
-# Keep control plane alive
-server.start()
+server.start()   # <-- REQUIRED

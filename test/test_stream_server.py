@@ -1,20 +1,22 @@
-from api.server import NikaServer
 import time
 import threading
-import random
+from api.server import NikaServer
 
 server = NikaServer()
+print("STREAM server running...")
 
-def stream_loop():
-    seq = 0
+seq = 0
+
+def produce():
+    global seq
     while True:
         server.publish_stream(
-            "numbers",
-            seq,
-            {"value": random.randint(1, 100)}
+            stream="numbers",
+            seq=seq,
+            payload={"value": seq}
         )
         seq += 1
-        time.sleep(1)
+        time.sleep(0.5)  # 20/sec (server limits to 10)
 
-threading.Thread(target=stream_loop, daemon=True).start()
+threading.Thread(target=produce, daemon=True).start()
 server.start()

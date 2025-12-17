@@ -1,20 +1,11 @@
+#client.py
 import zmq
 import json
 import uuid
 import time
 from typing import Callable, Optional
-from .protocol import (
-    REQUEST,
-    RESPONSE,
-    ERROR,
-    SUBSCRIBE,
-    UNSUBSCRIBE,
-    PING,
-    PONG,
-    STREAM_START,
-    STREAM_STOP,
-    STREAM,
-)
+from .envelope import envelope
+from .protocol import *
 
 class NikaClient:
     def __init__(
@@ -25,6 +16,7 @@ class NikaClient:
         heartbeat_timeout: int = 10,
     ):
         self.context = zmq.Context()
+        self.last_seq: dict[str, int] = {}
 
         # Control socket
         self.control_socket = self.context.socket(zmq.DEALER)
@@ -56,32 +48,29 @@ class NikaClient:
     # -----------------------
 
     def request(self, payload: dict):
-        self._send({
-            "type": REQUEST,
-            "id": str(uuid.uuid4()),
-            "payload": payload,
-        })
+        self._send(REQUEST, payload)
 
     def subscribe(self, topic: str):
-        self._send({
-            "type": SUBSCRIBE,
-            "id": str(uuid.uuid4()),
-            "topic": topic,
-        })
+        self.event_socket.setsockopt_string(zmq.SUBSCRIBE, topic)
+        self._send(SUBSCRIBE, {"topic": topic})
+
 
     def start_stream(self, stream: str):
-        self._send({
-            "type": STREAM_START,
-            "id": str(uuid.uuid4()),
-            "stream": stream,
-        })
+        self._send(STREAM_START, {"stream": stream})
+
 
     def stop_stream(self, stream: str):
-        self._send({
-            "type": STREAM_STOP,
-            "id": str(uuid.uuid4()),
-            "stream": stream,
-        })
+        self._send(STREAM_STOP, {"stream": stream})
+        
+    def resume_stream(self, stream: str):
+        last = self.last_seq.get(stream)
+        self._send(
+            RESUME_STREAM,
+            {
+                "stream": stream,
+                "last_seq": last,
+            }
+        )
 
     def on_event(self, handler: Callable[[str, dict], None]):
         self.event_handler = handler
@@ -101,7 +90,7 @@ class NikaClient:
             now = time.time()
 
             if now - self.last_ping_time >= self.heartbeat_interval:
-                self._send({"type": PING, "id": str(uuid.uuid4())})
+                self._send(PING)
                 self.last_ping_time = now
 
             sockets = dict(self.poller.poll(timeout=1000))
@@ -119,13 +108,20 @@ class NikaClient:
     # Internal helpers
     # -----------------------
 
-    def _send(self, msg: dict):
+    def _send(self, msg_type: str, payload: dict | None = None, msg_id: str | None = None):
+        msg = envelope(
+            msg_type=msg_type,
+            payload=payload,
+            msg_id=msg_id,
+            sender="client",
+        )
         self.control_socket.send(json.dumps(msg).encode())
 
     def _handle_control(self):
         msg = json.loads(self.control_socket.recv().decode())
-        msg_type = msg.get("type")
-        payload = msg.get("payload", {})
+
+        msg_type = msg["type"]
+        payload = msg["payload"]
 
         if msg_type == PONG:
             self.last_pong_time = time.time()
@@ -133,23 +129,34 @@ class NikaClient:
 
         if msg_type == RESPONSE:
             action = payload.get("action")
-            topic = payload.get("topic")
 
-            if action == SUBSCRIBE and topic:
-                self.event_socket.setsockopt_string(zmq.SUBSCRIBE, topic)
+            if action == STREAM_START:
+                stream = payload.get("topic")
+                if stream:
+                    self.event_socket.setsockopt_string(
+                        zmq.SUBSCRIBE,
+                        f"stream:{stream}"
+                    )
 
-            if action == STREAM_START and topic:
-                self.event_socket.setsockopt_string(
-                    zmq.SUBSCRIBE, f"stream:{topic}"
+            if action == STREAM_STOP:
+                stream = payload.get("topic")
+                if stream:
+                    self.event_socket.setsockopt_string(
+                        zmq.UNSUBSCRIBE,
+                        f"stream:{stream}"
+                    )
+
+            if action == RESUME_STREAM:
+                print(
+                    f"[INFO] Resumed stream '{payload['stream']}' "
+                    f"from seq {payload.get('resumed_from')}"
                 )
 
             if self.response_handler:
                 self.response_handler(msg)
-            return
 
-        if msg_type == ERROR:
-            if self.error_handler:
-                self.error_handler(msg)
+        elif msg_type == ERROR and self.error_handler:
+            self.error_handler(msg)
 
     def _handle_event(self):
         _, raw = self.event_socket.recv_multipart()
@@ -158,7 +165,21 @@ class NikaClient:
         if not self.event_handler:
             return
 
-        if event.get("type") == STREAM:
-            self.event_handler(event["stream"], event["payload"])
+        payload = event["payload"]
+
+        if event["type"] == STREAM:
+            stream = payload["stream"]
+            seq = payload["seq"]
+
+            last = self.last_seq.get(stream)
+            if last is not None and seq != last + 1:
+                print(
+                    f"[WARN] Stream '{stream}' dropped data "
+                    f"(expected {last + 1}, got {seq})"
+                )
+
+            self.last_seq[stream] = seq
+            self.event_handler(stream, payload["data"])
+
         else:
-            self.event_handler(event.get("topic"), event.get("payload"))
+            self.event_handler(payload["topic"], payload["data"])

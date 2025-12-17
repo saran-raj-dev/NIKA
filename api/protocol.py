@@ -1,18 +1,26 @@
-# nika/protocol.py
+# protocol.py
 
+# ---- Core message types ----
 REQUEST = "REQUEST"
 RESPONSE = "RESPONSE"
 ERROR = "ERROR"
 
+# ---- Pub/Sub ----
 SUBSCRIBE = "SUBSCRIBE"
 UNSUBSCRIBE = "UNSUBSCRIBE"
-
 EVENT = "EVENT"
-PUBLISH = "PUBLISH"
 
+# ---- Heartbeat ----
 PING = "PING"
 PONG = "PONG"
 
+# ---- Streaming ----
 STREAM_START = "STREAM_START"
 STREAM_STOP = "STREAM_STOP"
 STREAM = "STREAM"
+RESUME_STREAM = "RESUME_STREAM"
+
+# ---- Error codes ----
+ERR_UNKNOWN_MESSAGE = "UNKNOWN_MESSAGE"
+ERR_NO_HANDLER = "NO_HANDLER"
+ERR_INVALID_PAYLOAD = "INVALID_PAYLOAD"

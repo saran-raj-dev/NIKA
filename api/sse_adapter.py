@@ -1,3 +1,4 @@
+# sse_adapter.py
 import json
 import threading
 import queue

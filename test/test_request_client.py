@@ -1,11 +1,11 @@
 from api.client import NikaClient
-
-client = NikaClient()
+import time
 
 def on_response(msg):
-    print("CLIENT got response:", msg)
+    print("[RESPONSE]", msg["payload"])
 
+client = NikaClient()
 client.on_response(on_response)
 
-client.request({"hello": "request-response test"})
+client.request({"cmd": "ping"})
 client.start()
