@@ -1,5 +1,5 @@
 from api.server import NikaServer
 
-server = NikaServer()
-print("NIKA server running...")
-server.start()
+if __name__ == "__main__":
+    server = NikaServer()
+    server.start()
