@@ -24,6 +24,17 @@ class NikaServer:
         }
 
         self.stream_last_sent: dict[str, float] = {}
+        
+        # -----------------------
+        # Metrics (live-only)
+        # -----------------------
+        self.metrics = {
+            "requests_total": 0,
+            "events_published": 0,
+            "stream_sent": 0,
+            "stream_dropped": 0,
+            "clients_active": 0,
+        }
 
         # -----------------------
         # Control plane (REQ/REP)
@@ -70,6 +81,7 @@ class NikaServer:
 
     def publish(self, topic: str, payload: dict):
         """Publish a normal event."""
+        self.metrics["events_published"] += 1
         msg = envelope(
             msg_type=EVENT,
             sender="server",
@@ -122,6 +134,9 @@ class NikaServer:
                     
                 elif msg_type == RESUME_STREAM:
                     self._handle_resume(client_id, msg_id, msg)
+                    
+                elif msg_type == METRICS:
+                    self._send_metrics(client_id, msg_id)
 
                 else:
                     self._error(client_id, msg_id, "Unknown message type")
@@ -134,12 +149,16 @@ class NikaServer:
                 if now - ts > self.client_timeout:
                     self.client_streams.pop(cid, None)
                     self.last_seen.pop(cid, None)
+        
+            self.metrics["clients_active"] = len(self.last_seen)          
+        
 
     # -------------------------------------------------
     # Internal handlers
     # -------------------------------------------------
 
     def _handle_request(self, client_id, msg_id, msg):
+        self.metrics["requests_total"] += 1
         if not self.request_handler:
             self._error(client_id, msg_id, "No request handler registered")
             return
@@ -279,6 +298,7 @@ class NikaServer:
         if limit:
             last = self.stream_last_sent.get(stream, 0)
             if now - last < (1 / limit):
+                self.metrics["stream_dropped"] += 1
                 return  # silent drop
 
             self.stream_last_sent[stream] = now
@@ -292,8 +312,38 @@ class NikaServer:
                 "data": payload,
             },
         )
+        self.metrics["stream_sent"] += 1
 
         self.event_socket.send_multipart([
             f"stream:{stream}".encode(),
             json.dumps(msg).encode(),
+        ])
+    
+    def _send_metrics(self, client_id, msg_id):
+        streams = set(self.stream_last_sent.keys())
+        for subs in self.client_streams.values():
+            streams.update(subs)
+
+        payload = {
+            "metrics": self.metrics,
+            "streams": {
+                stream: {
+                    "subscribers": sum(
+                        stream in s for s in self.client_streams.values()
+                    )
+                }
+                for stream in streams
+            },
+        }
+
+        self.control_socket.send_multipart([
+            client_id,
+            json.dumps(
+                envelope(
+                    msg_type=RESPONSE,
+                    msg_id=msg_id,
+                    sender="server",
+                    payload=payload,
+                )
+            ).encode()
         ])

@@ -52,7 +52,6 @@ class NikaClient:
 
     def subscribe(self, topic: str):
         self.event_socket.setsockopt_string(zmq.SUBSCRIBE, topic)
-        self._send(SUBSCRIBE, {"topic": topic})
 
 
     def start_stream(self, stream: str):
@@ -80,6 +79,9 @@ class NikaClient:
 
     def on_error(self, handler: Callable[[dict], None]):
         self.error_handler = handler
+        
+    def get_metrics(self):
+        self._send(METRICS)
 
     # -----------------------
     # Main loop
