@@ -27,3 +27,7 @@ ERR_INVALID_PAYLOAD = "INVALID_PAYLOAD"
 
 # ---------------------
 METRICS = "METRICS"
+
+# ---- Client lifecycle ----
+CLIENT_JOIN = "CLIENT_JOIN"
+CLIENT_LEAVE = "CLIENT_LEAVE"

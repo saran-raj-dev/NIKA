@@ -1,11 +1,13 @@
-#client.py
+# client.py
 import zmq
 import json
 import uuid
 import time
 from typing import Callable, Optional
+
 from .envelope import envelope
 from .protocol import *
+
 
 class NikaClient:
     def __init__(
@@ -18,34 +20,52 @@ class NikaClient:
         self.context = zmq.Context()
         self.last_seq: dict[str, int] = {}
 
+        # -----------------------
         # Control socket
+        # -----------------------
         self.control_socket = self.context.socket(zmq.DEALER)
         self.client_id = f"client-{uuid.uuid4()}"
         self.control_socket.setsockopt_string(zmq.IDENTITY, self.client_id)
         self.control_socket.connect(control_addr)
 
+        # -----------------------
         # Event socket
+        # -----------------------
         self.event_socket = self.context.socket(zmq.SUB)
         self.event_socket.connect(event_addr)
 
+        # -----------------------
+        # Poller
+        # -----------------------
         self.poller = zmq.Poller()
         self.poller.register(self.control_socket, zmq.POLLIN)
         self.poller.register(self.event_socket, zmq.POLLIN)
 
+        # -----------------------
+        # Handlers
+        # -----------------------
         self.event_handler: Optional[Callable[[str, dict], None]] = None
         self.response_handler: Optional[Callable[[dict], None]] = None
         self.error_handler: Optional[Callable[[dict], None]] = None
 
+        # -----------------------
+        # Heartbeat
+        # -----------------------
         self.heartbeat_interval = heartbeat_interval
         self.heartbeat_timeout = heartbeat_timeout
         self.last_ping_time = 0.0
         self.last_pong_time = time.time()
 
+        # -----------------------
+        # Join server explicitly
+        # -----------------------
+        self._send(CLIENT_JOIN)
+
         print(f"NIKA client started ({self.client_id})")
 
-    # -----------------------
+    # =================================================
     # Public API
-    # -----------------------
+    # =================================================
 
     def request(self, payload: dict):
         self._send(REQUEST, payload)
@@ -53,14 +73,12 @@ class NikaClient:
     def subscribe(self, topic: str):
         self.event_socket.setsockopt_string(zmq.SUBSCRIBE, topic)
 
-
     def start_stream(self, stream: str):
         self._send(STREAM_START, {"stream": stream})
 
-
     def stop_stream(self, stream: str):
         self._send(STREAM_STOP, {"stream": stream})
-        
+
     def resume_stream(self, stream: str):
         last = self.last_seq.get(stream)
         self._send(
@@ -71,6 +89,9 @@ class NikaClient:
             }
         )
 
+    def get_metrics(self):
+        self._send(METRICS)
+
     def on_event(self, handler: Callable[[str, dict], None]):
         self.event_handler = handler
 
@@ -79,51 +100,68 @@ class NikaClient:
 
     def on_error(self, handler: Callable[[dict], None]):
         self.error_handler = handler
-        
-    def get_metrics(self):
-        self._send(METRICS)
 
-    # -----------------------
+    # =================================================
+    # Lifecycle
+    # =================================================
+
+    def close(self):
+        """
+        Graceful shutdown.
+        """
+        try:
+            self._send(CLIENT_LEAVE)
+            self.control_socket.poll(100)  # allow DEALER flush
+        finally:
+            self.control_socket.close(0)
+            self.event_socket.close(0)
+            self.context.term()
+
+    # =================================================
     # Main loop
-    # -----------------------
+    # =================================================
 
     def start(self):
-        while True:
-            now = time.time()
+        try:
+            while True:
+                now = time.time()
 
-            if now - self.last_ping_time >= self.heartbeat_interval:
-                self._send(PING)
-                self.last_ping_time = now
+                # Heartbeat
+                if now - self.last_ping_time >= self.heartbeat_interval:
+                    self._send(PING)
+                    self.last_ping_time = now
 
-            sockets = dict(self.poller.poll(timeout=1000))
+                sockets = dict(self.poller.poll(timeout=1000))
 
-            if self.control_socket in sockets:
-                self._handle_control()
+                if self.control_socket in sockets:
+                    self._handle_control()
 
-            if self.event_socket in sockets:
-                self._handle_event()
+                if self.event_socket in sockets:
+                    self._handle_event()
 
-            if time.time() - self.last_pong_time > self.heartbeat_timeout:
-                raise RuntimeError("Server heartbeat lost")
+                if time.time() - self.last_pong_time > self.heartbeat_timeout:
+                    raise RuntimeError("Server heartbeat lost")
 
-    # -----------------------
+        except KeyboardInterrupt:
+            print("Client shutting down...")
+            self.close()
+
+    # =================================================
     # Internal helpers
-    # -----------------------
+    # =================================================
 
-    def _send(self, msg_type: str, payload: dict | None = None, msg_id: str | None = None):
+    def _send(self, msg_type: str, payload: dict | None = None):
         msg = envelope(
             msg_type=msg_type,
             payload=payload,
-            msg_id=msg_id,
             sender="client",
         )
         self.control_socket.send(json.dumps(msg).encode())
 
     def _handle_control(self):
         msg = json.loads(self.control_socket.recv().decode())
-
         msg_type = msg["type"]
-        payload = msg["payload"]
+        payload = msg.get("payload", {})
 
         if msg_type == PONG:
             self.last_pong_time = time.time()
@@ -132,7 +170,10 @@ class NikaClient:
         if msg_type == RESPONSE:
             action = payload.get("action")
 
-            if action == STREAM_START:
+            if action == CLIENT_JOIN:
+                print("[INFO] Connected to server")
+
+            elif action == STREAM_START:
                 stream = payload.get("topic")
                 if stream:
                     self.event_socket.setsockopt_string(
@@ -140,7 +181,7 @@ class NikaClient:
                         f"stream:{stream}"
                     )
 
-            if action == STREAM_STOP:
+            elif action == STREAM_STOP:
                 stream = payload.get("topic")
                 if stream:
                     self.event_socket.setsockopt_string(
@@ -148,7 +189,7 @@ class NikaClient:
                         f"stream:{stream}"
                     )
 
-            if action == RESUME_STREAM:
+            elif action == RESUME_STREAM:
                 print(
                     f"[INFO] Resumed stream '{payload['stream']}' "
                     f"from seq {payload.get('resumed_from')}"
