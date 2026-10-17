@@ -24,6 +24,7 @@ examples/
 ├── stream_server.py
 ├── stream_client.py
 ├── stream_client_pure.py
+├── mesh_demo.py          # two gateways, failover + relayed writeback
 └── README.md
 ```
 

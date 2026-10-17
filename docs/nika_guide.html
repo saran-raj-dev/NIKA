@@ -1,0 +1,1849 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NIKA Guide</title>
+<style>
+:root {
+  --bg: #f7f7f5; --surface: #ffffff; --surface-2: #f0efeb; --border: #e2e0da;
+  --text: #1c1c1a; --muted: #6b6a64; --primary: #2f6fde; --primary-soft: #e6eefc;
+  --ok: #1f8a4c; --ok-soft: #e3f4ea; --warn: #b7791f; --warn-soft: #fbf0dc;
+  --bad: #c43d3d; --bad-soft: #fbe6e6; --violet: #7a4fd6; --violet-soft: #efe8fc;
+  --code-bg: #f3f2ee; --shadow: 0 1px 2px rgba(0,0,0,.05), 0 6px 20px rgba(0,0,0,.05);
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1012; --surface: #17181b; --surface-2: #1f2024; --border: #2b2d32;
+    --text: #e9e8e4; --muted: #9a9993; --primary: #6c9cf0; --primary-soft: #1b2740;
+    --ok: #4cc683; --ok-soft: #15291e; --warn: #e5b04e; --warn-soft: #2d2412;
+    --bad: #f07575; --bad-soft: #321a1a; --violet: #a988f0; --violet-soft: #241c37;
+    --code-bg: #121316; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1012; --surface: #17181b; --surface-2: #1f2024; --border: #2b2d32;
+  --text: #e9e8e4; --muted: #9a9993; --primary: #6c9cf0; --primary-soft: #1b2740;
+  --ok: #4cc683; --ok-soft: #15291e; --warn: #e5b04e; --warn-soft: #2d2412;
+  --bad: #f07575; --bad-soft: #321a1a; --violet: #a988f0; --violet-soft: #241c37;
+  --code-bg: #121316; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--sans); }
+a { color: var(--primary); }
+code, kbd { font-family: var(--mono); font-size: .86em; background: var(--code-bg); border: 1px solid var(--border); border-radius: 5px; padding: .05em .35em; }
+h1, h2, h3, h4 { line-height: 1.25; margin: 0 0 .5em; }
+h2 { font-size: 1.55rem; } h3 { font-size: 1.12rem; margin-top: 1.4em; }
+p { margin: .5em 0 .9em; }
+.muted { color: var(--muted); }
+
+/* ---------- top bar ---------- */
+.topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 14px; padding: 10px 20px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+.brand-mark { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--primary); color: #fff; font-size: 13px; }
+.seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; padding: 3px; }
+.seg button { border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); font-weight: 600; }
+.search { flex: 1; max-width: 340px; margin-left: auto; position: relative; }
+.search input { width: 100%; font: inherit; font-size: 14px; padding: 7px 12px 7px 32px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.icon-btn { border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 9px; width: 34px; height: 34px; display: grid; place-items: center; cursor: pointer; flex: none; }
+.menu-btn { display: none; }
+
+/* ---------- layout ---------- */
+.layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); max-width: 1320px; margin: 0 auto; }
+nav.side { position: sticky; top: 56px; height: calc(100vh - 56px); overflow-y: auto; padding: 22px 14px 40px 20px; border-right: 1px solid var(--border); }
+nav.side h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 18px 0 6px 8px; }
+nav.side a { display: block; padding: 5px 8px; border-radius: 6px; color: var(--text); text-decoration: none; font-size: 14px; }
+nav.side a:hover { background: var(--surface-2); }
+nav.side a.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+main { padding: 28px 36px 120px; min-width: 0; }
+section.doc { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 26px 28px; margin-bottom: 22px; box-shadow: var(--shadow); }
+.tag { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; margin-bottom: 10px; }
+.tag.user { background: var(--ok-soft); color: var(--ok); }
+.tag.dev { background: var(--violet-soft); color: var(--violet); }
+.tag.all { background: var(--primary-soft); color: var(--primary); }
+body[data-role="user"] [data-role="dev"], body[data-role="dev"] [data-role="user"] { display: none !important; }
+.hidden-by-search { display: none !important; }
+mark { background: color-mix(in srgb, var(--warn) 35%, transparent); color: inherit; border-radius: 3px; }
+
+/* ---------- hero ---------- */
+.hero { padding: 34px 32px; background: linear-gradient(135deg, var(--primary-soft), var(--violet-soft)); border: 1px solid var(--border); border-radius: 16px; margin-bottom: 22px; }
+.hero h1 { font-size: 2rem; margin-bottom: .3em; }
+.hero p { max-width: 760px; font-size: 1.05rem; }
+.paths { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 18px; }
+.path { display: block; text-align: left; font: inherit; color: inherit; cursor: pointer; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.path:hover { border-color: var(--primary); }
+.path b { display: block; margin-bottom: 2px; }
+
+/* ---------- cards / grids ---------- */
+.grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.card { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; background: var(--surface); }
+.card h4 { margin: 0 0 4px; font-size: 15px; }
+.card .pkg { font-family: var(--mono); font-size: 12px; color: var(--primary); }
+.idea { display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); }
+.idea:first-child { border-top: 0; }
+.idea .n { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--primary-soft); color: var(--primary); display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+.callout { border-left: 3px solid var(--primary); background: var(--primary-soft); padding: 10px 14px; border-radius: 0 8px 8px 0; margin: 12px 0; }
+.callout.warn { border-color: var(--warn); background: var(--warn-soft); }
+.callout.ok { border-color: var(--ok); background: var(--ok-soft); }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 10px 0 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+.table-wrap { overflow-x: auto; }
+
+/* ---------- buttons, tabs ---------- */
+.btn { font: inherit; font-size: 14px; border: 1px solid var(--border); background: var(--surface); color: var(--text); padding: 7px 14px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--primary); }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: 14px 0 0; overflow-x: auto; }
+.tabs button { font: inherit; font-size: 14px; border: 0; background: none; color: var(--muted); padding: 8px 12px; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+.tabs button[aria-selected="true"] { color: var(--primary); border-color: var(--primary); font-weight: 600; }
+.tabpanel { padding-top: 14px; }
+.tabpanel[hidden] { display: none; }
+
+/* ---------- code ---------- */
+pre { position: relative; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; overflow-x: auto; font: 13px/1.55 var(--mono); margin: 10px 0 14px; }
+:not(pre) > code { overflow-wrap: anywhere; }
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+.copy { position: absolute; top: 8px; right: 8px; font: 12px var(--sans); border: 1px solid var(--border); background: var(--surface); color: var(--muted); border-radius: 6px; padding: 2px 8px; cursor: pointer; opacity: .85; }
+.k { color: var(--violet); } .s { color: var(--ok); } .c { color: var(--muted); font-style: italic; } .f { color: var(--primary); }
+
+/* ---------- screenshots with hotspots ---------- */
+figure.shot { margin: 14px 0 18px; }
+.shot-frame { position: relative; display: inline-block; max-width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow); background: #111; }
+.shot-frame img { display: block; max-width: 100%; height: auto; cursor: zoom-in; }
+.hs { position: absolute; transform: translate(-50%, -50%); width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; background: var(--primary); color: #fff; font: 700 12px/20px var(--sans); text-align: center; cursor: pointer; box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 35%, transparent); padding: 0; }
+.hs:hover, .hs.on { background: var(--warn); box-shadow: 0 0 0 6px color-mix(in srgb, var(--warn) 35%, transparent); }
+@media (prefers-reduced-motion: no-preference) { .hs { animation: pulse 2.4s infinite; } }
+@keyframes pulse { 50% { box-shadow: 0 0 0 9px color-mix(in srgb, var(--primary) 0%, transparent); } }
+figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.hs-list { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 4px; }
+.hs-list li { display: flex; gap: 8px; align-items: baseline; font-size: 14px; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
+.hs-list li.on { background: var(--warn-soft); }
+.hs-list .dot { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--primary); color: #fff; font: 700 11px/20px var(--sans); text-align: center; }
+.lightbox { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.82); display: none; place-items: center; padding: 24px; cursor: zoom-out; }
+.lightbox.open { display: grid; }
+.lightbox img { max-width: 100%; max-height: 90vh; border-radius: 8px; }
+
+/* ---------- simulator ---------- */
+.sim { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, 1fr); gap: 16px; margin-top: 12px; }
+.sim-stage { background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 8px; }
+.sim-stage svg { width: 100%; height: auto; display: block; }
+.sim svg .node rect { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+.sim svg .node text { fill: var(--text); font: 600 14px var(--sans); }
+.sim svg .node .sub { fill: var(--muted); font: 12px var(--sans); }
+.sim svg .link { stroke-width: 3.5; fill: none; cursor: pointer; }
+.sim svg .link.up { stroke: var(--ok); }
+.sim svg .link.down { stroke: var(--bad); stroke-dasharray: 7 7; opacity: .75; }
+.sim svg .link.mesh.up { stroke: var(--violet); stroke-dasharray: 2 7; stroke-linecap: round; }
+.sim svg .link.off { stroke: var(--border); stroke-dasharray: 4 6; }
+.sim svg .hit { stroke: transparent; stroke-width: 22; fill: none; cursor: pointer; }
+.sim svg .lbl { font: 600 11px var(--sans); fill: var(--muted); }
+.sim svg .packet { stroke: #fff; stroke-width: 2; }
+.ctrl { display: grid; gap: 8px; align-content: start; }
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 14px; cursor: pointer; }
+.toggle input { appearance: none; width: 36px; height: 20px; border-radius: 999px; background: var(--bad); position: relative; cursor: pointer; flex: none; transition: background .15s; }
+.toggle input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .15s; }
+.toggle input:checked { background: var(--ok); }
+.toggle input:checked::after { left: 18px; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0; }
+.log { margin-top: 12px; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font: 13px/1.5 var(--mono); height: 210px; overflow-y: auto; }
+.log div { padding: 2px 0; }
+.log .ok { color: var(--ok); } .log .bad { color: var(--bad); } .log .warn { color: var(--warn); } .log .info { color: var(--primary); }
+.status-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 12px; }
+.stat { border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; background: var(--surface); font-size: 13px; }
+.stat b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+
+/* ---------- wizard ---------- */
+.wizard { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 18px; margin-top: 12px; }
+.steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; align-content: start; }
+.steps button { width: 100%; text-align: left; font: inherit; font-size: 14px; display: flex; gap: 10px; align-items: center; padding: 9px 10px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; }
+.steps button[aria-current="step"] { border-color: var(--primary); background: var(--primary-soft); }
+.steps .num { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font-weight: 700; font-size: 12px; }
+.steps button.done .num { background: var(--ok); color: #fff; }
+.progress { height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; margin: 6px 0 2px; }
+.progress div { height: 100%; background: var(--ok); width: 0; transition: width .3s; }
+.step-body h3 { margin-top: 0; }
+.step-nav { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+.check { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+
+/* ---------- fingerprint ---------- */
+.fp { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+.fp label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px; }
+.fp input { width: 100%; font: 13px var(--mono); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.fp .out { font: 600 15px var(--mono); margin-top: 6px; min-height: 24px; }
+.verdict { margin-top: 10px; padding: 8px 12px; border-radius: 8px; font-size: 14px; display: none; }
+.verdict.show { display: block; }
+.verdict.ok { background: var(--ok-soft); color: var(--ok); }
+.verdict.bad { background: var(--bad-soft); color: var(--bad); }
+
+/* ---------- badges / explorer ---------- */
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.badge { font: inherit; font-size: 13px; font-weight: 600; border: 1px solid transparent; padding: 4px 12px; border-radius: 999px; cursor: pointer; }
+.badge.ok { background: var(--ok-soft); color: var(--ok); }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+.badge.bad { background: var(--bad-soft); color: var(--bad); }
+.badge.grey { background: var(--surface-2); color: var(--muted); }
+.badge[aria-pressed="true"] { border-color: currentColor; }
+.explain { border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; background: var(--surface-2); min-height: 70px; }
+.explain h4 { margin: 0 0 4px; }
+
+/* ---------- state machine ---------- */
+.sm svg { width: 100%; max-width: 720px; height: auto; }
+.sm .st rect { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; cursor: pointer; }
+.sm .st text { fill: var(--text); font: 600 13px var(--sans); pointer-events: none; }
+.sm .st.on rect { stroke: var(--primary); stroke-width: 2.5; fill: var(--primary-soft); }
+.sm .ar { stroke: var(--muted); stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+.sm .al { fill: var(--muted); font: 11px var(--sans); }
+
+/* ---------- sequence ---------- */
+.seq svg { width: 100%; height: auto; display: block; }
+.seq .lane { stroke: var(--border); stroke-width: 2; stroke-dasharray: 4 5; }
+.seq .head rect { fill: var(--surface); stroke: var(--border); }
+.seq .head text { fill: var(--text); font: 600 13px var(--sans); }
+.seq .msg line { stroke-width: 2; }
+.seq .msg text { font: 600 12px var(--mono); }
+.seq .msg.future { opacity: .18; }
+.seq .msg.past line { stroke: var(--muted); } .seq .msg.past text { fill: var(--muted); }
+.seq .msg.now line { stroke: var(--primary); stroke-width: 3; } .seq .msg.now text { fill: var(--primary); }
+.seq-detail { border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; background: var(--surface-2); margin-top: 10px; min-height: 92px; }
+.seq-detail pre { margin: 8px 0 0; }
+
+/* ---------- message explorer ---------- */
+.msgx { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 14px; margin-top: 10px; }
+.msgx-list { display: grid; gap: 4px; align-content: start; }
+.msgx-list button { font: 12.5px var(--mono); text-align: left; padding: 7px 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; display: flex; justify-content: space-between; gap: 6px; }
+.msgx-list button[aria-pressed="true"] { border-color: var(--primary); background: var(--primary-soft); color: var(--primary); }
+.dir { font-size: 11px; color: var(--muted); font-family: var(--sans); }
+
+/* ---------- handshake tokens ---------- */
+.tokens { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.tok { font: 600 13px var(--mono); padding: 6px 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; color: var(--text); }
+.tok.enc { background: var(--violet-soft); color: var(--violet); }
+.tok.dh { background: var(--warn-soft); color: var(--warn); }
+.tok[aria-pressed="true"] { border-color: currentColor; box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 25%, transparent); }
+
+/* ---------- accordion ---------- */
+details.q { border: 1px solid var(--border); border-radius: 10px; margin: 8px 0; background: var(--surface); }
+details.q summary { cursor: pointer; padding: 10px 14px; font-weight: 600; list-style: none; display: flex; gap: 8px; align-items: center; }
+details.q summary::before { content: "▸"; color: var(--muted); transition: transform .15s; }
+details.q[open] summary::before { transform: rotate(90deg); }
+details.q > div { padding: 0 14px 12px 32px; }
+.filter { width: 100%; font: inherit; padding: 9px 12px; border-radius: 9px; border: 1px solid var(--border); background: var(--surface); color: var(--text); margin: 6px 0; }
+
+.tree { font: 13px/1.6 var(--mono); }
+.tree .app { color: var(--warn); } .tree .proto { color: var(--violet); }
+
+footer { color: var(--muted); font-size: 13px; text-align: center; padding: 20px; }
+
+/* ---------- security ---------- */
+.stack { display: grid; gap: 8px; margin: 12px 0; }
+.layer { border-radius: 12px; padding: 14px 16px; border: 1px solid var(--border); display: grid; gap: 4px; }
+.layer.own { background: var(--violet-soft); border-color: color-mix(in srgb, var(--violet) 40%, transparent); }
+.layer.own b { color: var(--violet); }
+.layer.std { background: var(--ok-soft); border-color: color-mix(in srgb, var(--ok) 40%, transparent); }
+.layer.std b { color: var(--ok); }
+.bf { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; align-items: end; margin: 10px 0 14px; }
+.bf label { font-size: 13px; font-weight: 600; display: grid; gap: 4px; }
+.bf select { font: inherit; font-size: 14px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+.bf-out { grid-column: 1 / -1; border-radius: 10px; padding: 12px 16px; background: var(--ok-soft); color: var(--text); font-size: 15px; }
+.bf-out b { color: var(--ok); font-size: 1.25rem; }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; margin-right: 4px; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); } .pill.warn { background: var(--warn-soft); color: var(--warn); } .pill.bad { background: var(--bad-soft); color: var(--bad); }
+.ks { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; margin: 10px 0; outline: none; }
+.ks-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.ks-steps li { font: 12.5px/1.45 var(--mono); padding: 6px 10px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; opacity: .55; }
+.ks-steps li.past { opacity: .85; }
+.ks-steps li.now { opacity: 1; border-color: var(--primary); background: var(--primary-soft); }
+.ks-steps li .who { font-family: var(--sans); font-size: 11px; color: var(--muted); margin-right: 6px; text-transform: uppercase; letter-spacing: .04em; }
+.ks-state { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface-2); font-size: 14px; }
+.ks-state .row { display: flex; gap: 8px; margin: 3px 0; font: 12.5px var(--mono); }
+.ks-state .row b { font-family: var(--sans); width: 92px; flex: none; color: var(--muted); font-size: 12px; }
+.frame { display: flex; gap: 3px; margin: 10px 0; flex-wrap: wrap; }
+.fcell { font: inherit; color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 6px; text-align: center; cursor: pointer; background: var(--surface); min-width: 54px; transition: background .2s; }
+.fcell small { display: block; color: var(--muted); font-size: 11px; }
+.fcell.hdr { background: var(--primary-soft); }
+.fcell.ct { background: var(--violet-soft); flex: 3; }
+.fcell.tag { background: var(--warn-soft); }
+.fcell[aria-pressed="true"] { outline: 2px solid var(--primary); }
+.fcell.hit { background: var(--bad-soft) !important; color: var(--bad); }
+.fcell.good { background: var(--ok-soft) !important; }
+.threat { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px; }
+.threat > div { border-radius: 10px; padding: 12px 16px; border: 1px solid var(--border); }
+.threat .can { background: var(--warn-soft); } .threat .cannot { background: var(--ok-soft); }
+.threat h4 { margin: 0 0 6px; }
+.threat ul { margin: 0; padding-left: 18px; }
+.gap { display: flex; gap: 12px; padding: 10px 0; border-top: 1px solid var(--border); }
+.gap:first-child { border-top: 0; }
+.gap .n { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--bad-soft); color: var(--bad); display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+.gap.closed .n { background: var(--ok-soft); color: var(--ok); }
+.api-group h3 { margin-top: 1.2em; }
+.api-group td:first-child { white-space: nowrap; }
+@media (max-width: 980px) { .ks, .threat { grid-template-columns: minmax(0, 1fr); } .api-group td:first-child { white-space: normal; } }
+
+/* ---------- responsive ---------- */
+@media (max-width: 980px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  nav.side { position: fixed; left: 0; top: 56px; width: 280px; z-index: 40; background: var(--bg); transform: translateX(-100%); transition: transform .2s; box-shadow: var(--shadow); }
+  nav.side.open { transform: none; }
+  .menu-btn { display: grid; }
+  .sim, .wizard, .msgx { grid-template-columns: minmax(0, 1fr); }
+  .steps { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+}
+@media (max-width: 640px) {
+  main { padding: 16px 16px 80px; }
+  section.doc { padding: 18px 16px; }
+  .hero { padding: 22px 18px; }
+  .hero h1 { font-size: 1.55rem; }
+  .topbar { flex-wrap: wrap; padding: 8px 16px; gap: 8px; }
+  .search { order: 5; max-width: none; flex-basis: 100%; }
+  .brand span.long { display: none; }
+  .fp { grid-template-columns: 1fr; }
+  .seg button { padding: 5px 9px; }
+}
+</style>
+</head>
+<body data-role="all">
+
+<header class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open navigation">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+  </button>
+  <div class="brand"><div class="brand-mark">N</div><span>NIKA <span class="long">Guide</span></span></div>
+  <div class="seg" role="group" aria-label="Show content for">
+    <button data-show="all" aria-pressed="true">Everyone</button>
+    <button data-show="user" aria-pressed="false">User</button>
+    <button data-show="dev" aria-pressed="false">Developer</button>
+  </div>
+  <label class="search">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="search" type="search" placeholder="Search the guide…  ( / )" aria-label="Search the guide">
+  </label>
+  <button class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle light / dark">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+  </button>
+</header>
+
+<div class="layout">
+<nav class="side" id="side" aria-label="Sections">
+  <h4>Start</h4>
+  <a href="#intro">What is NIKA?</a>
+  <a href="#simulator">See it work (simulator)</a>
+  <h4 data-role="user">User guide</h4>
+  <a href="#before" data-role="user">Before you start</a>
+  <a href="#pairing" data-role="user">Pair Stargate with ATLAS</a>
+  <a href="#statuses" data-role="user">Uplink statuses</a>
+  <a href="#mesh-user" data-role="user">The mesh</a>
+  <a href="#writeback" data-role="user">Write to a device</a>
+  <a href="#troubleshooting" data-role="user">Troubleshooting</a>
+  <h4 data-role="dev">Developer guide</h4>
+  <a href="#layout" data-role="dev">Layout &amp; the NIKA rule</a>
+  <a href="#nsc" data-role="dev">NSC secure channel</a>
+  <a href="#uplink" data-role="dev">Uplink protocol</a>
+  <a href="#sequences" data-role="dev">Sequence walkthroughs</a>
+  <a href="#mesh-dev" data-role="dev">Mesh API</a>
+  <a href="#platform" data-role="dev">Build a platform</a>
+  <a href="#gateway" data-role="dev">Build a gateway</a>
+  <a href="#reference" data-role="dev">Config &amp; API reference</a>
+  <a href="#testing" data-role="dev">Testing</a>
+  <h4>Security</h4>
+  <a href="#sec-custom">Our own encryption</a>
+  <a href="#sec-layers">Security layers</a>
+  <a href="#sec-nsc" data-role="dev">NSC internals (interactive)</a>
+  <a href="#sec-threats">Threat model</a>
+  <a href="#sec-gaps">Known gaps &amp; roadmap</a>
+  <a href="#sec-checklist">Security checklist</a>
+  <h4 data-role="dev">Full reference</h4>
+  <a href="#ref-api" data-role="dev">Public API</a>
+  <a href="#ref-wire" data-role="dev">Wire formats &amp; codes</a>
+  <a href="#ref-core" data-role="dev">Core models, timers, porting</a>
+</nav>
+
+<main id="main">
+
+<!-- ================================================================ INTRO -->
+<div class="hero" id="intro" data-section>
+  <span class="tag all">Everyone</span>
+  <h1>NIKA: your own link from gateway to platform</h1>
+  <p>NIKA lets a <b>Stargate</b> send its data to <b>ATLAS</b> (or any NIKA platform) over an encrypted link, receive commands and writebacks back, and lean on a neighbouring Stargate when its own link is down. It runs <b>alongside MQTT</b>: nothing about MQTT changes.</p>
+  <div class="paths">
+    <button class="path" data-go="user" data-target="#pairing"><b>👷 I set up and run sites</b><span class="muted">Pair a gateway, set up the mesh, read the status screens, write to devices.</span></button>
+    <button class="path" data-go="dev" data-target="#layout"><b>🧑‍💻 I build software</b><span class="muted">The protocol, the message set, and how to plug NIKA into a new platform or gateway.</span></button>
+    <button class="path" data-go="all" data-target="#simulator"><b>▶︎ Just show me</b><span class="muted">Cut links in a live simulator and watch where the data goes.</span></button>
+    <button class="path" data-go="all" data-target="#sec-custom"><b>🔐 How secure is it?</b><span class="muted">Our own encryption explained, the threat model, and an honest list of gaps.</span></button>
+  </div>
+</div>
+
+<section class="doc" data-section>
+  <span class="tag all">Everyone</span>
+  <h2>Three parts, one protocol</h2>
+  <p>Each part is a separate package you can import. Specs live next to the code in the NIKA repo.</p>
+  <div class="grid3">
+    <div class="card"><div class="pkg">api.secure</div><h4>🔐 NSC: secure channel</h4><p class="muted">Two parties prove who they are with public keys, then talk encrypted. It's built only from proven building blocks (X25519, ChaCha20-Poly1305, HKDF).</p><a href="../SECURE.md">SECURE.md</a></div>
+    <div class="card"><div class="pkg">api.uplink</div><h4>☁️ Uplink: gateway ⇄ platform</h4><p class="muted">Data goes up and is acknowledged only once the platform has <b>stored</b> it. Commands come down. Relaying is announced, never hidden.</p><a href="../UPLINK.md">UPLINK.md</a></div>
+    <div class="card"><div class="pkg">api.mesh</div><h4>🕸️ Mesh: neighbours help</h4><p class="muted">Gateways on one LAN find each other and carry each other's traffic, separately for MQTT and NIKA, when a link fails.</p><a href="../MESH.md">MESH.md</a></div>
+  </div>
+  <h3>Five ideas to remember</h3>
+  <div class="idea"><div class="n">1</div><div><b>Alongside MQTT, not instead of it.</b> A Stargate can send to MQTT, to NIKA, or to both at once. Turning NIKA on or off never touches MQTT.</div></div>
+  <div class="idea"><div class="n">2</div><div><b>Identity is a key pair.</b> The public key is 43 characters of text. Its short form is an 8-character <b>fingerprint</b> such as <code>4f1c9a7e</code>. Pairing = each side learns the other's public key.</div></div>
+  <div class="idea"><div class="n">3</div><div><b>An ack means stored.</b> The gateway keeps each message in its outbox until the platform says it has written it. Rejections always come with a reason; nothing is dropped silently.</div></div>
+  <div class="idea"><div class="n">4</div><div><b>Relaying is explicit.</b> When A carries B, the platform is told, decides whether to allow it, and stores the data under <b>B</b>. Commands for B travel back through A.</div></div>
+  <div class="idea"><div class="n">5</div><div><b>NIKA is only a protocol.</b> It knows nothing about Stargate, ATLAS, BACnet or topics. Each application plugs in through callbacks.</div></div>
+</section>
+
+<!-- ================================================================ SIMULATOR -->
+<section class="doc" id="simulator" data-section>
+  <span class="tag all">Everyone · interactive</span>
+  <h2>See it work</h2>
+  <p>Two Stargates on one site. <b>sg-roof</b> (B) sends to the Nectar broker over MQTT and to ATLAS over NIKA. <b>sg-ground</b> (A) is its neighbour. <b>Click a line to cut it</b> (or use the switches), then send a reading or a write and watch the path it takes.</p>
+  <div class="sim">
+    <div>
+      <div class="sim-stage">
+        <svg id="topo" viewBox="0 0 760 360" role="img" aria-label="Network of two Stargates, an MQTT broker and ATLAS">
+          <g id="links"></g>
+          <g id="nodes"></g>
+          <g id="packets"></g>
+        </svg>
+      </div>
+      <div class="status-row" id="simStatus"></div>
+    </div>
+    <div class="ctrl">
+      <label class="toggle">sg-roof → ATLAS (NIKA) <input type="checkbox" data-link="bN" checked></label>
+      <label class="toggle">sg-roof → broker (MQTT) <input type="checkbox" data-link="bM" checked></label>
+      <label class="toggle">sg-ground → ATLAS (NIKA) <input type="checkbox" data-link="aN" checked></label>
+      <label class="toggle">sg-ground → broker (MQTT) <input type="checkbox" data-link="aM" checked></label>
+      <label class="toggle">Mesh between the two <input type="checkbox" data-link="mesh" checked></label>
+      <label class="toggle">ATLAS: sg-ground “may relay” <input type="checkbox" data-link="allow" checked></label>
+      <div class="actions">
+        <button class="btn primary" id="sendReading">📈 sg-roof sends a reading</button>
+        <button class="btn" id="sendWrite">✍️ ATLAS writes to sg-roof</button>
+      </div>
+      <div class="actions">
+        <button class="btn" id="preset">✂️ Cut sg-roof's NIKA link</button>
+        <button class="btn" id="resetSim">↺ Reset</button>
+      </div>
+      <div class="log" id="simLog" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ USER: BEFORE -->
+<section class="doc" id="before" data-section data-role="user">
+  <span class="tag user">User guide</span>
+  <h2>Before you start</h2>
+  <div class="table-wrap"><table>
+    <tr><th>You need</th><th>Where to find it</th></tr>
+    <tr><td>ATLAS running, with its NIKA server on</td><td>ATLAS → <b>System</b>. The <b>NIKA uplink</b> card shows <b>Listening</b>, the address and ATLAS's public key</td></tr>
+    <tr><td>A Stargate that can reach ATLAS on <b>47900/TCP</b></td><td>Stargate UI → <b>Settings → NIKA</b></td></tr>
+    <tr><td>An ATLAS user who can add gateways (and has <code>points.write</code> to write to devices)</td><td>ATLAS → Users / Roles</td></tr>
+    <tr><td><i>Mesh only:</i> the Stargates on one LAN and one shared <b>mesh key</b> (16+ characters)</td><td>Settings → NIKA → Mesh</td></tr>
+  </table></div>
+  <div class="callout"><b>Firewall:</b> the gateway connects <i>out</i> to the platform on 47900/TCP, so nothing has to be opened on the gateway. The mesh uses <b>47800/UDP</b> (discovery) and <b>47801/TCP</b> (relay sessions) between gateways on the LAN.</div>
+</section>
+
+<!-- ================================================================ USER: PAIRING WIZARD -->
+<section class="doc" id="pairing" data-section data-role="user">
+  <span class="tag user">User guide · step by step</span>
+  <h2>Pair a Stargate with ATLAS</h2>
+  <p>Pairing swaps public keys: ATLAS learns the gateway's key, and the gateway learns ATLAS's key. Tick each step as you go; your progress is remembered in this browser. Click the numbered dots on the screenshots.</p>
+  <div class="progress"><div id="wizBar"></div></div>
+  <div class="muted" id="wizCount" style="font-size:13px"></div>
+  <div class="wizard">
+    <ol class="steps" id="wizSteps"></ol>
+    <div class="step-body" id="wizBody"></div>
+  </div>
+</section>
+
+<!-- ================================================================ USER: STATUSES -->
+<section class="doc" id="statuses" data-section data-role="user">
+  <span class="tag user">User guide</span>
+  <h2>Reading the Stargate uplink card</h2>
+  <p>Click a badge to see what it means and what to do.</p>
+  <div class="badges" id="badgeBar"></div>
+  <div class="explain" id="badgeExplain"></div>
+  <figure class="shot" data-shot="refused"></figure>
+  <p><b>Waiting to send</b> is the outbox backlog. It grows while the link is down and drains, oldest first, once the link is back. A message leaves the outbox only once the platform has <b>stored</b> it.</p>
+</section>
+
+<!-- ================================================================ USER: MESH -->
+<section class="doc" id="mesh-user" data-section data-role="user">
+  <span class="tag user">User guide</span>
+  <h2>The mesh: neighbours that cover for each other</h2>
+  <p>When a Stargate loses its own link, it sends through a neighbour on the same LAN that still has one. This works <b>per channel</b>:</p>
+  <div class="grid3">
+    <div class="card"><h4>MQTT channel</h4><p class="muted">The neighbour publishes B's messages on its own broker connection. The neighbour must use the <b>same broker</b>, and the broker's ACL must allow B's topics.</p></div>
+    <div class="card"><h4>NIKA channel</h4><p class="muted">The neighbour forwards B's data over its own NIKA uplink, marked as <b>B's</b>. ATLAS must know B and allow the neighbour to relay.</p></div>
+  </div>
+  <h3>Set it up</h3>
+  <p>Settings → NIKA → <b>Mesh</b>: enable it, enter the <b>same mesh key on every gateway</b>, then save. Neighbours appear within seconds. If broadcasts are blocked, add them as <b>static peers</b> (<code>host:47800</code>).</p>
+  <div class="tabs" role="tablist" data-tabs="mesh">
+    <button role="tab" aria-selected="true" data-tab="m1">Mesh key</button>
+    <button role="tab" aria-selected="false" data-tab="m2">Peers</button>
+    <button role="tab" aria-selected="false" data-tab="m3">B relayed (NIKA)</button>
+    <button role="tab" aria-selected="false" data-tab="m4">ATLAS view</button>
+    <button role="tab" aria-selected="false" data-tab="m5">A relaying</button>
+    <button role="tab" aria-selected="false" data-tab="m6">ACL denied</button>
+  </div>
+  <div class="tabpanel" data-panel="m1"><figure class="shot" data-shot="meshKey"></figure></div>
+  <div class="tabpanel" data-panel="m2" hidden><figure class="shot" data-shot="peers"></figure></div>
+  <div class="tabpanel" data-panel="m3" hidden><figure class="shot" data-shot="relayed"></figure></div>
+  <div class="tabpanel" data-panel="m4" hidden><figure class="shot" data-shot="viaRelay"></figure></div>
+  <div class="tabpanel" data-panel="m5" hidden><figure class="shot" data-shot="relaying"></figure></div>
+  <div class="tabpanel" data-panel="m6" hidden><figure class="shot" data-shot="acl"></figure></div>
+  <h3>What you'll see</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Situation</th><th>Stargate NIKA tab</th><th>ATLAS</th></tr>
+    <tr><td>All links up</td><td><b>Direct to cloud</b></td><td>Gateway <i>reached directly</i></td></tr>
+    <tr><td>B's NIKA link down, A carries it</td><td>On B: <b>NIKA relayed via sg-ground</b>. Own cloud links: MQTT Up, NIKA Down</td><td>B: <b>Connected via sg-ground</b></td></tr>
+    <tr><td>A is carrying someone</td><td>On A: <i>Relaying for</i> lists B</td><td>Both online</td></tr>
+    <tr><td>A's broker refuses B's topics (MQTT)</td><td>On B: relay refused (ACL denied); B tries another neighbour</td><td>—</td></tr>
+  </table></div>
+  <div class="callout ok">When B's own link comes back and stays up for a few seconds, B goes back to <b>direct</b> by itself. Nothing is sent twice.</div>
+</section>
+
+<!-- ================================================================ USER: WRITEBACK -->
+<section class="doc" id="writeback" data-section data-role="user">
+  <span class="tag user">User guide</span>
+  <h2>Write to a device from ATLAS</h2>
+  <p>On an asset or gateway page, open a device and click <b>Write</b> next to a point.</p>
+  <figure class="shot" data-shot="points"></figure>
+  <figure class="shot" data-shot="dialog"></figure>
+  <h3>What happens to a write: click a state</h3>
+  <div class="sm">
+    <svg viewBox="0 0 720 262" id="smSvg" role="img" aria-label="Writeback states">
+      <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="currentColor" style="color:var(--muted)"/></marker></defs>
+    </svg>
+  </div>
+  <div class="explain" id="smExplain"><span class="muted">Click a state above.</span></div>
+  <p style="margin-top:14px">The route line under each write says how it travelled: <i>over MQTT</i>, <i>over NIKA</i>, or <i>over NIKA, relayed via sg-ground</i>.</p>
+  <div class="callout warn"><b>Raw commands</b> (gateway page → <b>Send command</b>) send any topic and JSON to a gateway. They're for engineers. Point writes are the safe, tracked path.</div>
+</section>
+
+<!-- ================================================================ USER: TROUBLESHOOTING -->
+<section class="doc" id="troubleshooting" data-section data-role="user">
+  <span class="tag user">User guide</span>
+  <h2>Troubleshooting</h2>
+  <input class="filter" id="tsFilter" type="search" placeholder="Filter problems… e.g. refused, fingerprint, relay">
+  <div id="tsList"></div>
+</section>
+
+<!-- ================================================================ DEV: LAYOUT -->
+<section class="doc" id="layout" data-section data-role="dev">
+  <span class="tag dev">Developer guide</span>
+  <h2>Layout and the “NIKA-specific” rule</h2>
+  <p>NIKA is a protocol. <span style="color:var(--violet)">Protocol code</span> lives in the NIKA repo and is <b>vendored</b> (copied) into each application. <span style="color:var(--warn)">Application code</span> lives in the application and plugs in through callbacks.</p>
+<pre class="tree"><span class="proto">NIKA/                                   the protocol (nothing app-specific here)
+  api/secure/        NSC: handshake, sessions, keys
+  api/uplink/        NikaUplinkServer / NikaUplinkClient
+  api/mesh/          MeshNode, MeshConfig, CommandGuard
+  api/protocol.py    message types and error codes
+  SECURE.md  UPLINK.md  MESH.md
+  test/test_{secure,uplink,mesh}.py</span>
+
+<span class="proto">Stargate/gateway/NIKA/                  vendored copy → import gateway.NIKA.*</span>
+<span class="app">Stargate/gateway/mqtt/nika_uplink.py    outbox, PublishShim, settings
+Stargate/gateway/mqtt/mesh_bridge.py    mesh glue, channels mqtt + nika</span>
+
+<span class="proto">ATLAS/backend/atlas/vendor/nika/        vendored copy → import atlas.vendor.nika.*</span>
+<span class="app">ATLAS/backend/atlas/services/nika_server.py   authorize, store, routes
+ATLAS/backend/atlas/services/commands.py      writebacks + raw commands</span></pre>
+  <div class="grid3">
+    <div class="card"><h4 style="color:var(--violet)">Goes into NIKA</h4><p class="muted">Crypto, framing, sessions, acks, ordering, relaying, routes, command de-duplication, error codes.</p></div>
+    <div class="card"><h4 style="color:var(--warn)">Stays in the app</h4><p class="muted">Which keys are allowed, how data is stored, what a topic means, retries against your own DB, UI.</p></div>
+    <div class="card"><h4>Re-vendoring</h4><p class="muted">Copy <code>api/{secure,uplink,mesh,protocol.py,envelope.py}</code> plus the specs. NIKA's imports are relative, so the copy works under any package name.</p></div>
+  </div>
+</section>
+
+<!-- ================================================================ DEV: NSC -->
+<section class="doc" id="nsc" data-section data-role="dev">
+  <span class="tag dev">Developer guide · interactive</span>
+  <h2>NSC: the NIKA Secure Channel</h2>
+  <p>A Noise-IK-style handshake. The client already knows the server's static key, so the handshake is <b>one round trip</b> and authenticates both sides. Protocol name: <code>NIKA-NSC-v1/IK/X25519/ChaChaPoly/SHA256</code>. <b>Click a token</b> to see what it does.</p>
+  <h4>Message 1 · client → server (<code>H1</code>)</h4>
+  <div class="tokens" data-hs="1"></div>
+  <h4>Message 2 · server → client (<code>H2</code>)</h4>
+  <div class="tokens" data-hs="2"></div>
+  <div class="explain" id="hsExplain"><span class="muted">Click a token above.</span></div>
+  <h3>After the handshake</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Property</th><th>How</th></tr>
+    <tr><td>Frame</td><td><code>header(12) = version ‖ epoch ‖ kind ‖ counter(8)</code>, then ChaCha20-Poly1305 with nonce = counter and AAD = header</td></tr>
+    <tr><td>Replay / reorder</td><td>Counters only move forward; anything else is rejected</td></tr>
+    <tr><td>Rekey</td><td>Each direction rolls its key every 2<sup>20</sup> frames or every hour</td></tr>
+    <tr><td>Forward secrecy</td><td>Ephemeral keys on both sides; the client's identity is never sent in the clear</td></tr>
+    <tr><td>Keys</td><td><code>StaticKey.load_or_create(path)</code> (file mode 0600), <code>public_b64</code> (43 chars), <code>fingerprint</code> = first 8 hex characters of SHA-256(public key)</td></tr>
+  </table></div>
+  <h3>Try it: fingerprint from a public key</h3>
+  <p class="muted">This is computed locally in your browser, the same way NIKA does it. Paste the two keys to check that a pairing matches.</p>
+  <div class="fp" id="fpTool2"></div>
+<pre><code><span class="k">from</span> api.secure <span class="k">import</span> StaticKey, ClientHandshake, ServerHandshake
+server, client = StaticKey.generate(), StaticKey.generate()
+hs_c = ClientHandshake(client, server.public)          <span class="c"># client knows the server key</span>
+hs_s = ServerHandshake(server)
+client_static = hs_s.read_message1(hs_c.write_message1())   <span class="c"># server learns + authenticates the client</span>
+m2, s_sess = hs_s.write_message2()
+c_sess, _ = hs_c.read_message2(m2)
+<span class="k">assert</span> s_sess.decrypt(c_sess.encrypt(<span class="s">b"hi"</span>))[1] == <span class="s">b"hi"</span></code></pre>
+  <p class="muted">You rarely touch NSC directly: the uplink uses it for you.</p>
+</section>
+
+<!-- ================================================================ DEV: UPLINK -->
+<section class="doc" id="uplink" data-section data-role="dev">
+  <span class="tag dev">Developer guide · interactive</span>
+  <h2>Uplink protocol</h2>
+  <p>ZeroMQ <b>DEALER</b> (gateway) ⇄ <b>ROUTER</b> (platform) over TCP, default port <b>47900</b>. Frames: <code>H1</code>/<code>H2</code> handshake, <code>D</code> NSC-encrypted JSON, and <code>E</code> plaintext refusal (only <code>UPLINK_NOT_AUTHORISED</code>). The maximum message size is 1 MiB. Pick a message:</p>
+  <div class="msgx">
+    <div class="msgx-list" id="msgList"></div>
+    <div id="msgDetail"></div>
+  </div>
+  <h3>Guarantees</h3>
+  <div class="idea"><div class="n">✓</div><div><b>An ack means stored.</b> <code>publish()</code> returns only after the server app's <code>on_data</code> returned. It raises <code>UplinkError(reason)</code> on a rejection and <code>UplinkUnavailable</code> when the outcome is unknown (retry; de-duplicate on <code>msg_id</code>).</div></div>
+  <div class="idea"><div class="n">✓</div><div><b>Ordered and single.</b> Messages from one peer are processed in order, and a new session for the same peer replaces the old one.</div></div>
+  <div class="idea"><div class="n">✓</div><div><b>Commands are safe to repeat.</b> They're de-duplicated by <code>command_id</code> and refused when past <code>expires_at</code>, before your handler runs.</div></div>
+  <div class="idea"><div class="n">✓</div><div><b>Routes survive reconnects.</b> They're replayed after a reconnect and dropped when the relay's session ends. Concurrent <code>announce_route()</code> calls for one origin share one request.</div></div>
+  <p><b>Errors:</b> <code>UPLINK_NOT_AUTHORISED</code>, <code>UPLINK_ORIGIN_DENIED</code>, <code>UPLINK_STORE_FAILED</code>, <code>UPLINK_UNAVAILABLE</code>, <code>UPLINK_BAD_MESSAGE</code>, or any reason string your <code>on_data</code> returns.</p>
+</section>
+
+<!-- ================================================================ DEV: SEQUENCES -->
+<section class="doc" id="sequences" data-section data-role="dev">
+  <span class="tag dev">Developer guide · interactive</span>
+  <h2>Sequence walkthroughs</h2>
+  <p>Step through the real frames, in order. Use <kbd>←</kbd> <kbd>→</kbd> while this box has focus.</p>
+  <div class="tabs" role="tablist" id="seqTabs">
+    <button role="tab" aria-selected="true" data-seq="pair">Pairing &amp; first data</button>
+    <button role="tab" aria-selected="false" data-seq="relay">Data relayed through A</button>
+    <button role="tab" aria-selected="false" data-seq="write">Writeback to a relayed gateway</button>
+  </div>
+  <div class="seq" id="seqBox" tabindex="0" style="outline:none;margin-top:12px">
+    <svg id="seqSvg" viewBox="0 0 760 100"></svg>
+    <div class="step-nav">
+      <button class="btn" id="seqPrev">← Back</button>
+      <button class="btn primary" id="seqNext">Next →</button>
+      <button class="btn" id="seqPlay">▶ Play</button>
+      <span class="muted" id="seqPos" style="font-size:13px"></span>
+    </div>
+    <div class="seq-detail" id="seqDetail"></div>
+  </div>
+</section>
+
+<!-- ================================================================ DEV: MESH -->
+<section class="doc" id="mesh-dev" data-section data-role="dev">
+  <span class="tag dev">Developer guide</span>
+  <h2>Mesh API</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Concept</th><th>Details</th></tr>
+    <tr><td>Discovery</td><td>HMAC-signed UDP beacons on <b>47800</b> (broadcast and/or static peers), advertising the per-channel uplink state, e.g. <code>{"mqtt": true, "nika": false}</code></td></tr>
+    <tr><td>Relay sessions</td><td>ZeroMQ on <b>47801/TCP</b>, MAC'd with the site <code>mesh_key</code>. Messages: <code>RELAY_OPEN/ACK</code>, <code>RELAY_CHALLENGE</code>/<code>RELAY_PROVE</code>, <code>RELAY_DATA/ACK</code>, <code>RELAY_DOWNLINK/ACK</code>, <code>RELAY_PING/PONG</code>, <code>RELAY_CLOSE</code>, <code>RELAY_REVOKE</code></td></tr>
+    <tr><td>Channels</td><td><code>set_uplink(up, channel="nika")</code> per channel. An origin seeks a relay when any channel it uses is down. A relay accepts a channel only while it's up on its side. <code>send(..., channel=)</code></td></tr>
+    <tr><td>Relay choice</td><td><code>preferred_relays</code> first; a failed relay is avoided for <code>relay_cooldown</code> (30 s); <code>revoke(origin, reason)</code> ends a session (e.g. <code>RELAY_ACL_DENIED</code>, <code>RELAY_WRONG_BROKER</code>)</td></tr>
+    <tr><td>Commands</td><td>Relay: <code>forward_command(origin, …)</code>. Origin: <code>on_command(Command)</code>. Share one <code>CommandGuard</code> between the uplink and the mesh so a command that arrives both ways runs once</td></tr>
+    <tr><td>Session meta</td><td>Origin <code>set_session_meta({...})</code>, relay <code>session_meta(origin)</code>. Stargate uses it to check that both gateways talk to the <b>same platform</b> (server fingerprint) before relaying NIKA. Meta is <b>self-declared</b>: never use it to decide who the origin is</td></tr>
+    <tr><td>Origin identity</td><td>Origin <code>set_identity(static_key)</code> (Stargate: its NIKA key). The relay challenges every <code>RELAY_OPEN</code> and <code>session_identity(origin)</code> returns the <b>proven</b> 32-byte key, or <code>None</code>. <code>require_identity=True</code> refuses origins that prove nothing</td></tr>
+  </table></div>
+<pre><code><span class="k">from</span> api.mesh <span class="k">import</span> MeshNode, MeshConfig
+node = MeshNode(MeshConfig(node_id=<span class="s">"sg-roof"</span>, mesh_key=SITE_KEY, preferred_relays=[<span class="s">"sg-ground"</span>]))
+node.on_uplink_publish(<span class="k">lambda</span> req: upstream(req))   <span class="c"># relay side: call req.ack() / req.fail(reason)</span>
+node.on_delivery(<span class="k">lambda</span> msg_id, ok, reason: ...)      <span class="c"># origin side: outcome of send()</span>
+node.start()
+node.set_uplink(<span class="k">False</span>, channel=<span class="s">"nika"</span>)               <span class="c"># our NIKA link dropped</span>
+<span class="k">if</span> node.state == <span class="s">"relayed"</span>:
+    node.send(topic, payload, msg_id=<span class="s">"sg-roof:nk:42"</span>, channel=<span class="s">"nika"</span>)</code></pre>
+</section>
+
+<!-- ================================================================ DEV: PLATFORM -->
+<section class="doc" id="platform" data-section data-role="dev">
+  <span class="tag dev">Developer guide</span>
+  <h2>Build a NIKA platform (ATLAS is the reference)</h2>
+  <p>A platform needs four things: <b>a key, a server, an authorisation rule and a store</b>.</p>
+  <div class="tabs" role="tablist" data-tabs="plat">
+    <button role="tab" aria-selected="true" data-tab="p1">Minimal server</button>
+    <button role="tab" aria-selected="false" data-tab="p2">How ATLAS does it</button>
+    <button role="tab" aria-selected="false" data-tab="p3">Checklist</button>
+  </div>
+  <div class="tabpanel" data-panel="p1">
+<pre><code><span class="k">from</span> api.secure <span class="k">import</span> StaticKey
+<span class="k">from</span> api.uplink <span class="k">import</span> NikaUplinkServer, DataMessage
+
+key = load_or_create_platform_key()          <span class="c"># keep it safe: it IS the platform's identity</span>
+
+<span class="k">async def</span> <span class="f">authorize</span>(client_public: bytes) -> str | None:
+    <span class="s">"""A peer id (we use the key text) if this key belongs to a known, enabled gateway."""</span>
+    gw = <span class="k">await</span> db.gateway_by_key(key_text(client_public))
+    <span class="k">return</span> key_text(client_public) <span class="k">if</span> gw <span class="k">else None</span>
+
+<span class="k">async def</span> <span class="f">on_data</span>(dm: DataMessage) -> str | None:
+    <span class="s">"""Store, then return None (ack ok) or a reason string (explicit reject)."""</span>
+    gw = <span class="k">await</span> db.gateway_by_key(dm.origin)  <span class="c"># dm.origin != dm.peer_id when relayed</span>
+    <span class="k">if</span> gw <span class="k">is None</span>:
+        <span class="k">return</span> <span class="s">"UPLINK_ORIGIN_DENIED"</span>
+    <span class="k">await</span> store(gw, dm.topic, dm.payload)    <span class="c"># commit BEFORE returning</span>
+    <span class="k">return None</span>
+
+<span class="k">async def</span> <span class="f">on_route</span>(relay: str, origin: str, active: bool) -> bool:
+    <span class="s">"""May `relay` carry `origin`?"""</span>
+    r, o = <span class="k">await</span> db.gateway_by_key(relay), <span class="k">await</span> db.gateway_by_key(origin)
+    <span class="k">return not</span> active <span class="k">or</span> bool(r <span class="k">and</span> o <span class="k">and</span> r.relay_allowed)
+
+server = NikaUplinkServer(key, bind=<span class="s">"tcp://0.0.0.0:47900"</span>, authorize=authorize, on_data=on_data,
+                          on_route=on_route, on_session=on_session, on_command_ack=on_command_ack)
+<span class="k">await</span> server.start()
+
+route = <span class="k">await</span> server.send_command(peer_id, <span class="s">"stargate/gateway/sg-roof/cmd"</span>, payload_json,
+                                  command_id=str(uuid4()), expires_at=time.time() + 120)
+<span class="c"># 'direct' | relay peer_id | None (unreachable → mark the write "undeliverable")</span></code></pre>
+  </div>
+  <div class="tabpanel" data-panel="p2" hidden>
+    <div class="table-wrap"><table>
+      <tr><th>Piece</th><th>ATLAS (<code>backend/atlas/services/nika_server.py</code>)</th></tr>
+      <tr><td>Key</td><td>Created on first start and stored <b>encrypted</b> (Fernet, <code>SECRET_KEY</code>) in <code>system_secrets</code>, so it survives upgrades and backups. If it can't be decrypted, ATLAS refuses to replace it</td></tr>
+      <tr><td>authorize</td><td>An <b>enabled</b> gateway with <code>transport='nika'</code> and a matching <code>nika_public_key</code></td></tr>
+      <tr><td>on_data</td><td><code>IngestManager.ingest(gateway_id, topic, payload)</code>, the same single entry point MQTT uses. Topics ATLAS doesn't use are acked and ignored</td></tr>
+      <tr><td>on_route</td><td>The relay has <code>nika_relay_allowed</code> and the origin is a known NIKA gateway, so the UI shows “Connected via &lt;relay&gt;”</td></tr>
+      <tr><td>Edits</td><td>Editing or disabling a gateway calls <code>server.disconnect(old_key)</code></td></tr>
+      <tr><td>Writebacks</td><td><code>services/commands.py</code>: builds Stargate's payload (<code>point_id, data, priority, writebackId</code>, command type) and sends it to <code>&lt;prefix&gt;/cmd</code>. The answer arrives as data on <code>&lt;prefix&gt;/ack/cmd</code> and is matched by <code>writebackId</code>. NOT_APPLIED supersedes SUCCESS; no answer in 60 s → <code>timeout</code></td></tr>
+    </table></div>
+  </div>
+  <div class="tabpanel" data-panel="p3" hidden>
+    <div id="platCheck"></div>
+  </div>
+</section>
+
+<!-- ================================================================ DEV: GATEWAY -->
+<section class="doc" id="gateway" data-section data-role="dev">
+  <span class="tag dev">Developer guide</span>
+  <h2>Build a NIKA gateway (Stargate is the reference)</h2>
+  <div class="tabs" role="tablist" data-tabs="gw">
+    <button role="tab" aria-selected="true" data-tab="g1">Minimal client</button>
+    <button role="tab" aria-selected="false" data-tab="g2">How Stargate does it</button>
+  </div>
+  <div class="tabpanel" data-panel="g1">
+<pre><code><span class="k">from</span> api.secure <span class="k">import</span> StaticKey, parse_public_key
+<span class="k">from</span> api.uplink <span class="k">import</span> NikaUplinkClient, UplinkError, UplinkUnavailable
+
+key = StaticKey.load_or_create(<span class="s">"/data/nika/identity.key"</span>)
+client = NikaUplinkClient(key, parse_public_key(PLATFORM_KEY), endpoint=<span class="s">"tcp://atlas:47900"</span>,
+                          meta={<span class="s">"base_topic"</span>: BASE, <span class="s">"gateway_id"</span>: GW}, on_command=handle_command)
+<span class="k">await</span> client.start()
+
+<span class="c"># drain a durable outbox, oldest first</span>
+<span class="k">for</span> row <span class="k">in</span> outbox.unsent():
+    <span class="k">try</span>:
+        <span class="k">await</span> client.publish(row.topic, row.payload, msg_id=f<span class="s">"{GW}:nk:{row.id}"</span>)
+        outbox.mark_sent(row.id)               <span class="c"># only after the platform stored it</span>
+    <span class="k">except</span> UplinkUnavailable:
+        <span class="k">break</span>                                  <span class="c"># link dropped: try later, or via the mesh</span>
+    <span class="k">except</span> UplinkError <span class="k">as</span> e:
+        outbox.mark_failed(row.id, e.reason)   <span class="c"># explicit rejection: don't retry forever</span>
+
+<span class="k">async def</span> <span class="f">handle_command</span>(cmd) -> str:
+    <span class="k">if</span> cmd.target:                             <span class="c"># for a neighbour we relay for</span>
+        <span class="k">return await</span> mesh_forward(cmd)
+    <span class="k">await</span> run_locally(cmd.topic, cmd.payload)  <span class="c"># then publish the ack as normal data</span>
+    <span class="k">return</span> <span class="s">"accepted"</span></code></pre>
+  </div>
+  <div class="tabpanel" data-panel="g2" hidden>
+    <div class="idea"><div class="n">1</div><div><b>One tap, MQTT untouched.</b> <code>MQTTService.publish()</code> hands each message to <code>NikaUplinkService.enqueue()</code> when the uplink is on. It never raises, and it's a no-op when NIKA is off (<code>gateway/mqtt/client.py</code>).</div></div>
+    <div class="idea"><div class="n">2</div><div><b>Durable outbox.</b> The <code>nika_outbox</code> table (Flyway V54), written in batches. It drains with up to 50 publishes in flight, kept in order by the server, and is pruned like <code>mqtt_outbox</code>.</div></div>
+    <div class="idea"><div class="n">3</div><div><b>Commands reuse the MQTT handlers</b> via <code>PublishShim</code>, so a writeback's ack (<code>&lt;base&gt;/ack/cmd</code>) is published like any other message and reaches the platform.</div></div>
+    <div class="idea"><div class="n">4</div><div><b>Mesh NIKA channel</b> (<code>mesh_bridge.py</code>): while the uplink is down, <code>relay_nika_tick()</code> sends unsent rows over the mesh. The relay checks it uses the same platform, announces <code>UPLINK_ROUTE</code> and publishes with <code>origin=B</code>. If the platform refuses the route, the relay refuses each message with <code>RELAY_ACL_DENIED</code>, and B keeps it queued (and retries after 15 s). Targeted commands go through <code>forward_nika_command</code>.</div></div>
+    <div class="idea"><div class="n">5</div><div><b>Identity</b> is in <code>&lt;DATA_DIR&gt;/nika/identity.key</code> (or <code>NIKA_IDENTITY_PATH</code>). Settings are live-editable in Settings → NIKA and stored in <code>gateway_settings.meta</code>.</div></div>
+  </div>
+</section>
+
+<!-- ================================================================ DEV: REFERENCE -->
+<section class="doc" id="reference" data-section data-role="dev">
+  <span class="tag dev">Developer guide</span>
+  <h2>Config &amp; API reference</h2>
+  <div class="tabs" role="tablist" data-tabs="ref">
+    <button role="tab" aria-selected="true" data-tab="r1">Stargate settings</button>
+    <button role="tab" aria-selected="false" data-tab="r2">ATLAS settings</button>
+    <button role="tab" aria-selected="false" data-tab="r3">Stargate API</button>
+    <button role="tab" aria-selected="false" data-tab="r4">ATLAS API</button>
+  </div>
+  <div class="tabpanel" data-panel="r1"><div class="table-wrap"><table>
+    <tr><th>Env</th><th>Default</th><th>Meaning</th></tr>
+    <tr><td><code>NIKA_UPLINK_ENABLED</code></td><td>false</td><td>Turn the uplink on</td></tr>
+    <tr><td><code>NIKA_UPLINK_HOST</code> / <code>_PORT</code></td><td>— / 47900</td><td>The platform's address</td></tr>
+    <tr><td><code>NIKA_UPLINK_SERVER_KEY</code></td><td>—</td><td>The platform's public key (43 chars)</td></tr>
+    <tr><td><code>NIKA_IDENTITY_PATH</code></td><td><code>&lt;DATA_DIR&gt;/nika/identity.key</code></td><td>This gateway's key file: keep it</td></tr>
+    <tr><td><code>MESH_ENABLED</code>, <code>MESH_KEY</code></td><td>false, —</td><td>The mesh, and the site-wide key (16+ chars)</td></tr>
+    <tr><td><code>MESH_PORT</code> / <code>MESH_DISCOVERY_PORT</code></td><td>47801 / 47800</td><td>Relay TCP / beacon UDP</td></tr>
+    <tr><td><code>MESH_STATIC_PEERS</code></td><td>—</td><td><code>host:udp_port,…</code> when broadcast is blocked</td></tr>
+    <tr><td><code>MESH_RELAY_ENABLED</code>, <code>MESH_RELAY_CAPACITY</code></td><td>true, 4</td><td>Carry neighbours, and how many at once</td></tr>
+    <tr><td><code>MESH_UPLINK_GRACE_S</code></td><td>10</td><td>How long a link must be down before seeking a relay</td></tr>
+    <tr><td><code>MESH_COMMAND_TTL_S</code></td><td>120</td><td>Command expiry over the mesh</td></tr>
+  </table></div><p class="muted">The UI (Settings → NIKA) overrides these live; the overrides are stored in <code>gateway_settings.meta</code>.</p></div>
+  <div class="tabpanel" data-panel="r2" hidden><div class="table-wrap"><table>
+    <tr><th>Env</th><th>Default</th><th>Meaning</th></tr>
+    <tr><td><code>NIKA_ENABLED</code></td><td>true</td><td>Run the NIKA server</td></tr>
+    <tr><td><code>NIKA_BIND</code> / <code>NIKA_PORT</code></td><td>0.0.0.0 / 47900</td><td>Where gateways connect</td></tr>
+    <tr><td><code>NIKA_ADVERTISE_HOST</code></td><td>—</td><td>The address shown to operators on the System page</td></tr>
+    <tr><td><code>COMMAND_TTL_S</code></td><td>120</td><td>A command not run within this window is dropped by the gateway</td></tr>
+    <tr><td><code>WRITEBACK_TIMEOUT_S</code></td><td>60</td><td>No ack within this window → state <code>timeout</code></td></tr>
+  </table></div></div>
+  <div class="tabpanel" data-panel="r3" hidden><div class="table-wrap"><table>
+    <tr><th>Endpoint</th><th>Purpose</th></tr>
+    <tr><td><code>GET /api/nika/uplink</code></td><td>Status (<code>state</code>, <code>problem</code>, <code>last_error</code>, <code>connected_since</code>, fingerprints, metrics), settings, this gateway's key, backlog</td></tr>
+    <tr><td><code>PUT /api/nika/uplink</code></td><td><code>{enabled, host, port, server_key}</code>; admin only; applied live</td></tr>
+    <tr><td><code>GET /api/mesh/status</code></td><td>Mesh state, peers, per-channel uplinks, sessions, outbox</td></tr>
+    <tr><td><code>PUT /api/mesh/config</code></td><td>Mesh settings (key, peers, preferred relays, relay on/off)</td></tr>
+  </table></div></div>
+  <div class="tabpanel" data-panel="r4" hidden><div class="table-wrap"><table>
+    <tr><th>Endpoint</th><th>Purpose</th></tr>
+    <tr><td><code>GET /api/nika</code></td><td>Server state, endpoint, public key, fingerprint, live sessions</td></tr>
+    <tr><td><code>POST /api/gateways</code></td><td>With <code>transport: "nika"</code>, <code>nika_public_key</code>, <code>nika_relay_allowed</code></td></tr>
+    <tr><td><code>GET /api/gateways/{id}</code></td><td>Includes <code>nika_session.route</code>: <code>direct</code> or the relay's name</td></tr>
+    <tr><td><code>POST /api/points/{id}/writeback</code></td><td><code>{command_type, value?, priority, duration_s?}</code>, needs <code>points.write</code></td></tr>
+    <tr><td><code>GET /api/points/{id}/writebacks</code> · <code>GET /api/writebacks/{id}</code></td><td>History and state</td></tr>
+    <tr><td><code>POST /api/gateways/{id}/commands</code></td><td>A raw topic suffix + JSON payload, needs <code>gateways.command</code></td></tr>
+  </table></div></div>
+</section>
+
+<!-- ================================================================ DEV: TESTING -->
+<section class="doc" id="testing" data-section data-role="dev">
+  <span class="tag dev">Developer guide</span>
+  <h2>Testing</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Where</th><th>Command</th><th>Covers</th></tr>
+    <tr><td>NIKA</td><td><code>python -m pytest test/test_secure.py test/test_uplink.py test/test_mesh.py</code></td><td>Handshake, tamper, replay, wrong key, rekey; uplink round trip, reconnect, routes; mesh channels, failover, revoke</td></tr>
+    <tr><td>ATLAS</td><td><code>cd backend &amp;&amp; python3.11 -m pytest tests/test_nika_uplink.py</code></td><td>Real NIKA clients against ATLAS's server and Postgres: pairing, relay, writeback states, permissions</td></tr>
+    <tr><td>Stargate</td><td><code>python -m pytest tests/test_nika_*</code></td><td>The tap is a no-op when off, outbox replay, command shim, mesh NIKA channel, settings API</td></tr>
+  </table></div>
+  <p>All tests use real sockets on localhost. An end-to-end run (ATLAS + two Stargates, B relayed through A, writeback round trip) passed 16/16 checks. Security is covered in its own chapter: <a href="#sec-custom">Security</a>.</p>
+</section>
+
+<!-- ================================================================ SECURITY: CUSTOM ENCRYPTION -->
+<section class="doc" id="sec-custom" data-section>
+  <span class="tag all">Security · everyone</span>
+  <h2>“Our own encryption”: what is NIKA's, and what isn't</h2>
+  <p>The goal was a <b>custom, hard-to-break encryption model of our own</b>. NIKA has one, and it is the <b>NIKA Secure Channel (NSC)</b>. It has two layers, and only one of them is meant to be ours:</p>
+  <div class="stack">
+    <div class="layer own"><b>NIKA's own protocol</b><span>The handshake shape, message layout, frame header, key schedule and labels (<code>NIKA-NSC-v1…</code>), rekey rule, replay rules, identity and fingerprint format, key-file format and error behaviour. Nobody else speaks NSC: a TLS, Noise or SSH client can't talk to a NIKA server.</span></div>
+    <div class="layer std"><b>Standard, proven building blocks</b><span><code>X25519</code> key agreement · <code>ChaCha20-Poly1305</code> encryption + integrity · <code>HKDF-SHA256</code> / <code>SHA-256</code>. These are the same blocks used by WireGuard, Signal, TLS 1.3 and SSH.</span></div>
+  </div>
+  <h3>Why not invent the cipher too?</h3>
+  <div class="tabs" role="tablist" data-tabs="why">
+    <button role="tab" aria-selected="true" data-tab="w1">Secret home-made cipher</button>
+    <button role="tab" aria-selected="false" data-tab="w2">NIKA's way</button>
+  </div>
+  <div class="tabpanel" data-panel="w1">
+    <div class="callout warn"><b>Security comes from secrecy of the design.</b> But anyone with a Stargate image has the code, and the algorithm gets reverse-engineered. After that, only its real mathematical strength is left, and a cipher no expert has attacked usually has very little. This has happened again and again: the GSM ciphers <i>A5/1</i> and <i>A5/2</i>, <i>MIFARE Crypto-1</i>, the DVD's <i>CSS</i>. All were secret, custom and broken, often with standard techniques (differential and linear cryptanalysis, nonce reuse, timing).</div>
+  </div>
+  <div class="tabpanel" data-panel="w2" hidden>
+    <div class="callout ok"><b>Security comes from the keys alone</b> (Kerckhoffs's principle). The design can be fully public and still nobody can read or forge traffic without the keys. The protocol is ours, so it stays unique to NIKA. The primitives are the ones the whole world has tried to break for years without success, so “hard to break” is a measured fact, not a hope.</div>
+  </div>
+  <h3>How hard is “hard to break”? Try it</h3>
+  <p class="muted">Pick an attacker. This is how long a brute-force search of NSC's 128-bit security level would take.</p>
+  <div class="bf">
+    <label>Guesses per second, per machine <select id="bfRate"><option value="1e9">10⁹ (a fast PC)</option><option value="1e12" selected>10¹² (a GPU farm node)</option><option value="1e15">10¹⁵ (a supercomputer)</option><option value="1e18">10¹⁸ (beyond anything that exists)</option></select></label>
+    <label>Machines <select id="bfMachines"><option value="1">1</option><option value="1e6" selected>1 million</option><option value="1e9">1 billion</option><option value="8e9">one per person on Earth (8 billion)</option></select></label>
+    <div class="bf-out" id="bfOut"></div>
+  </div>
+  <div class="table-wrap"><table>
+    <tr><th>Primitive</th><th>Security level</th><th>Breaking it means</th></tr>
+    <tr><td>X25519</td><td>≈ 2<sup>128</sup> operations</td><td>Recovering a private key from a public key</td></tr>
+    <tr><td>ChaCha20-Poly1305</td><td>256-bit key, 128-bit tag</td><td>Decrypting is a 2<sup>256</sup> search; a forged frame passes with probability ≈ 2<sup>−106</sup> per attempt</td></tr>
+    <tr><td>SHA-256 / HKDF</td><td>128-bit collision, 256-bit pre-image</td><td>Deriving one session key from another</td></tr>
+  </table></div>
+  <div class="callout"><b>What must stay secret:</b> the <b>keys</b>, that is, each gateway's <code>identity.key</code>, and ATLAS's <code>SECRET_KEY</code> (which protects its NIKA key). The design itself doesn't have to be secret.<br><b>Want a layer “known only to us” as well?</b> Turn on the deployment-wide <b>pre-shared key</b>: a 32-byte secret mixed into the handshake (Noise <code>IKpsk2</code> pattern, see <a href="#sec-nsc">NSC internals</a>). Then even someone with a valid key pair <i>and</i> the source can't open a session. It's optional and off by default (<code>psk=</code> on <code>NikaUplinkServer</code> / <code>NikaUplinkClient</code>).</div>
+</section>
+
+<!-- ================================================================ SECURITY: LAYERS -->
+<section class="doc" id="sec-layers" data-section>
+  <span class="tag all">Security · everyone</span>
+  <h2>The three security layers</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Layer</th><th>Protects</th><th>Encrypted?</th><th>Authenticated?</th><th>Replay-safe?</th></tr>
+    <tr><td><b>NSC uplink</b><br><span class="muted">gateway ⇄ platform</span></td><td>All data, commands and acks between Stargate and ATLAS</td><td><span class="pill ok">Yes</span> ChaCha20-Poly1305</td><td><span class="pill ok">Both sides</span> by public key</td><td><span class="pill ok">Yes</span> counters + remembered ephemerals</td></tr>
+    <tr><td><b>Mesh</b><br><span class="muted">gateway ⇄ gateway, LAN</span></td><td>Relay sessions, beacons</td><td><span class="pill bad">No</span> readable on the LAN</td><td><span class="pill warn">Shared key</span> HMAC-SHA256, site mesh key; <span class="pill ok">origin key proven</span> by a challenge</td><td><span class="pill ok">Yes</span> frame ids within ±120 s; fresh nonce per challenge</td></tr>
+    <tr><td><b>Core models</b><br><span class="muted">REQ/RES, PUB/SUB, STREAMS</span></td><td>Internal apps on a private network</td><td><span class="pill bad">No</span></td><td><span class="pill warn">API key</span> at CLIENT_JOIN (demo keys)</td><td><span class="pill warn">Partly</span> REQ/RES idempotency</td></tr>
+  </table></div>
+  <div class="callout"><b>Rule of thumb:</b> the uplink is safe over untrusted networks, including the internet. The mesh is safe on a site LAN you control. The core models are for localhost, a VPN or a private VPC.</div>
+</section>
+
+<!-- ================================================================ SECURITY: NSC INTERNALS -->
+<section class="doc" id="sec-nsc" data-section data-role="dev">
+  <span class="tag dev">Security · developer · interactive</span>
+  <h2>NSC internals: key schedule and frames</h2>
+  <p>State is a Noise-style <b>chaining key</b> <code>ck</code> and <b>transcript hash</b> <code>h</code>. Every public value and ciphertext is mixed into <code>h</code> and used as AEAD associated data, so changing any byte of the transcript breaks the next tag. Step through it:</p>
+  <div class="ks" id="ksBox" tabindex="0">
+    <ol class="ks-steps" id="ksSteps"></ol>
+    <div class="ks-side">
+      <div class="ks-state" id="ksState"></div>
+      <div class="step-nav"><button class="btn" id="ksPrev">← Back</button><button class="btn primary" id="ksNext">Next →</button><span class="muted" id="ksPos" style="font-size:13px"></span></div>
+    </div>
+  </div>
+  <p class="muted" style="font-size:13px"><code>HKDF(ck, ikm)</code> = HMAC-SHA256 extract with <code>ck</code> as the salt, then two expand blocks: <code>out1 = HMAC(prk, 0x01)</code> and <code>out2 = HMAC(prk, out1 ‖ 0x02)</code>, exactly as in Noise. Message 1 is <code>0x01 ‖ e(32) ‖ enc_s(48) ‖ enc_payload(24+n)</code>; message 2 is <code>0x01 ‖ f(32) ‖ enc_payload(16+n)</code>.</p>
+
+  <h3>Optional pre-shared key (IKpsk2)</h3>
+  <p>With <code>psk=</code> on both sides (32 random bytes; <code>generate_psk()</code> makes one as text), the protocol name becomes <code>NIKA-NSC-v1/IKpsk2/X25519/ChaChaPoly/SHA256</code>, every ephemeral is also mixed into the key (<code>ck, k = HKDF(ck, e)</code>), and after <code>se</code> in message 2 the psk goes in: <code>ck, h′, k = HKDF(ck, psk, 3)</code>, <code>h = SHA256(h ‖ h′)</code>.</p>
+  <div class="table-wrap"><table>
+    <tr><th></th><th>Effect</th></tr>
+    <tr><td>Version byte <code>0x02</code></td><td>A psk peer and a plain peer fail on the very first byte with a clear <code>NSCError</code>, not on a puzzling tag error. The different protocol name means the two transcripts can never match</td></tr>
+    <tr><td>Nobody without the psk can read message 2</td><td>So they can't derive session keys, even with a stolen <code>identity.key</code></td></tr>
+    <tr><td>The server switches sessions only after the new session's first frame authenticates</td><td>A valid message 1 without the psk can't knock out the live session</td></tr>
+    <tr><td>Message 1 is still readable without the psk</td><td>A stranger's handshake costs the server the same two DH operations (gap 3 is unchanged)</td></tr>
+    <tr><td>Rollout</td><td>Platform and gateways switch together: a psk server refuses all plain clients, and a plain server refuses all psk clients</td></tr>
+  </table></div>
+
+  <h3>A transport frame: click a field, then tamper with it</h3>
+  <div class="frame" id="frame"></div>
+  <div class="actions"><button class="btn" id="tamperBtn">🔨 Tamper with the selected field</button><button class="btn" id="replayBtn">↩︎ Replay an old frame</button><button class="btn" id="validBtn">✓ Send a valid frame</button></div>
+  <div class="explain" id="frameExplain"><span class="muted">Click a field above.</span></div>
+
+  <h3>Properties, and the attack each one blocks</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Property</th><th>Blocks</th></tr>
+    <tr><td>Server authentication (pinned <code>S</code>; <code>es</code> + <code>se</code>)</td><td>A fake platform / man-in-the-middle</td></tr>
+    <tr><td>Client authentication (<code>ss</code>, encrypted <code>C</code>)</td><td>A fake gateway</td></tr>
+    <tr><td>Identity hiding</td><td>Observers learning which gateway connects</td></tr>
+    <tr><td>Forward secrecy (<code>ee</code>)</td><td>A future key theft decrypting recorded traffic</td></tr>
+    <tr><td>Timestamp ±120 s + remembered ephemerals</td><td>Replaying a captured handshake</td></tr>
+    <tr><td>Counters in the authenticated header</td><td>Replaying, reordering or splicing frames</td></tr>
+    <tr><td>Low-order point check</td><td>Small-subgroup / all-zero shared secrets</td></tr>
+    <tr><td>Transcript hash as AEAD data</td><td>Downgrade or tampering with any handshake byte</td></tr>
+    <tr><td>Silent failure (<code>NSCError</code>, no reply)</td><td>Probing which check failed</td></tr>
+  </table></div>
+  <h3>What the uplink server and the mesh enforce</h3>
+  <div class="grid3">
+    <div class="card"><h4>Uplink server</h4><p class="muted">• <code>authorize(key)</code> on every connect, after proof of key ownership<br>• one session per identity, switched only once the new session's first frame authenticates; ATLAS edit/disable → <code>disconnect()</code><br>• optional deployment pre-shared key (<code>psk=</code>)<br>• relayed data needs an accepted <code>UPLINK_ROUTE</code><br>• 1 MiB per message, 10,000-message queue per session, 30 s idle timeout<br>• the platform key is stored Fernet-encrypted (ATLAS)</p></div>
+    <div class="card"><h4>Mesh</h4><p class="muted">• HMAC-SHA256 on every frame, compared in constant time<br>• ±120 s timestamp + unique frame id (replay cache)<br>• ZeroMQ identity must equal <code>sender</code>; optional <code>allowed_peers</code><br>• 200 msg/s per origin, <code>relay_capacity</code>, 10 s idle drop<br>• origin identity: <code>RELAY_CHALLENGE {n, e}</code> → <code>RELAY_PROVE {mac}</code>, <code>mac = HMAC(HKDF(DH(S, E)), relay ‖ origin ‖ n ‖ E ‖ S ‖ meta)</code>; the relay exposes the proven key as <code>session_identity()</code><br>• NIKA channel: same-platform check, origin named <b>only by its proven key</b>, then the platform's route decision</p></div>
+    <div class="card"><h4>Commands</h4><p class="muted">• unique <code>command_id</code> + <code>expires_at</code><br>• duplicates and expired commands refused before the app sees them<br>• one <code>CommandGuard</code> shared by the uplink and the mesh: a command runs at most once<br>• the device's answer is tracked separately (writeback states)</p></div>
+  </div>
+</section>
+
+<!-- ================================================================ SECURITY: THREATS -->
+<section class="doc" id="sec-threats" data-section>
+  <span class="tag all">Security · everyone · interactive</span>
+  <h2>Threat model: pick an attacker</h2>
+  <div class="badges" id="threatBar"></div>
+  <div class="threat" id="threatOut"></div>
+</section>
+
+<!-- ================================================================ SECURITY: GAPS -->
+<section class="doc" id="sec-gaps" data-section>
+  <span class="tag all">Security · everyone</span>
+  <h2>Known gaps and the roadmap</h2>
+  <p>This is an honest list: it says what NIKA does <b>not</b> protect today, and how each gap gets closed.</p>
+  <div id="gapList"></div>
+  <h3>Closed since the first review</h3>
+  <div id="gapClosed"></div>
+  <h3>Hardening options</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Option</th><th>Closes</th><th>Effort</th></tr>
+    <tr><td><b>End-to-end NSC through the relay</b>: the origin keeps its own NSC session to the platform; the relay only carries encrypted frames</td><td>Gap 1 completely, and forgery by a relay</td><td><span class="pill warn">Medium</span></td></tr>
+    <tr><td><b>Verify origin signatures in ATLAS</b> (<code>OriginSigner</code> / <code>verify_origin</code>)</td><td>Forgery by a relay</td><td><span class="pill ok">Small–medium</span></td></tr>
+    <tr><td><b>Encrypt the mesh</b> (NSC between neighbours)</td><td>Gap 1</td><td><span class="pill warn">Medium</span></td></tr>
+    <tr><td><b>Handshake rate limiting</b> per source</td><td>Gap 3</td><td><span class="pill ok">Small</span></td></tr>
+    <tr><td><b>NSC for the core models</b></td><td>Gap 6</td><td><span class="pill warn">Medium</span></td></tr>
+  </table></div>
+  <p class="muted">Done: <b>proof of key possession on <code>RELAY_OPEN</code></b> and the <b>deployment pre-shared key in NSC</b> (IKpsk2).</p>
+</section>
+
+<!-- ================================================================ SECURITY: CHECKLIST -->
+<section class="doc" id="sec-checklist" data-section>
+  <span class="tag all">Security · operators</span>
+  <h2>Operator security checklist</h2>
+  <p class="muted">Ticks are remembered in this browser.</p>
+  <div id="secCheck"></div>
+</section>
+
+<!-- ================================================================ REFERENCE: API -->
+<section class="doc" id="ref-api" data-section data-role="dev">
+  <span class="tag dev">Full reference</span>
+  <h2>Public API</h2>
+  <p>This is everything public in NIKA. Anything not listed is internal and may change. Dependencies: Python ≥ 3.10, <code>pyzmq</code>, <code>cryptography</code>.</p>
+  <input class="filter" id="apiFilter" type="search" placeholder="Filter the API… e.g. publish, revoke, fingerprint">
+  <div id="apiTables"></div>
+</section>
+
+<!-- ================================================================ REFERENCE: WIRE -->
+<section class="doc" id="ref-wire" data-section data-role="dev">
+  <span class="tag dev">Full reference</span>
+  <h2>Wire formats, messages and error codes</h2>
+  <h3>Uplink (ZeroMQ DEALER ⇄ ROUTER)</h3>
+  <p><code>[kind, data]</code> from the DEALER (the ROUTER adds the identity). Kinds: <code>H1</code>, <code>H2</code>, <code>D</code> (an NSC frame holding compact JSON <code>{"t": TYPE, …}</code>), <code>E</code> (plaintext <code>{"code": "UPLINK_NOT_AUTHORISED"}</code>). Payloads go in <code>p</code> (UTF-8) or <code>pb</code> (base64). <code>MAX_FRAME</code> = 1 MiB, enforced with <code>zmq.MAXMSGSIZE</code>.</p>
+  <h3>Mesh envelope (UDP beacons, TCP relay frames)</h3>
+<pre><code>{"nika": "1.0", "type": "RELAY_DATA", "id": "&lt;uuid&gt;", "ts": "&lt;iso8601&gt;", "sender": "sg-roof",
+ "payload": {...}, "t": 1792252000.12,
+ "mac": "&lt;hex HMAC-SHA256(mesh_key, canonical JSON without mac)&gt;"}</code></pre>
+  <div class="table-wrap"><table>
+    <tr><th>Type</th><th>Direction</th><th>Payload</th></tr>
+    <tr><td><code>MESH_BEACON</code></td><td>UDP broadcast / static peers</td><td><code>port, host, uplink, uplinks{channel: bool}, relay, load, capacity</code></td></tr>
+    <tr><td><code>RELAY_OPEN</code> / <code>_ACK</code></td><td>origin → relay / back</td><td><code>meta</code> / <code>accepted, reason?</code></td></tr>
+    <tr><td><code>RELAY_DATA</code> / <code>_ACK</code></td><td>origin → relay / back</td><td><code>msg_id, seq, topic, payload, qos, priority, ts, sig?, ch</code> / <code>msg_id, ok</code> (+ <code>reason, ch</code> on failure)</td></tr>
+    <tr><td><code>RELAY_DOWNLINK</code> / <code>_ACK</code></td><td>relay → origin / back</td><td><code>command_id, topic, payload, expires_at</code> / <code>command_id, status</code></td></tr>
+    <tr><td><code>RELAY_PING</code> / <code>RELAY_PONG</code></td><td>keepalive</td><td>—</td></tr>
+    <tr><td><code>RELAY_CLOSE</code> / <code>RELAY_REVOKE</code></td><td>origin is back / relay gives up</td><td><code>reason</code></td></tr>
+  </table></div>
+  <h3>All message types and error codes (<code>api.protocol</code>)</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Group</th><th>Names</th></tr>
+    <tr><td>Core</td><td><code>REQUEST RESPONSE ERROR SUBSCRIBE UNSUBSCRIBE EVENT PING PONG STREAM_START STREAM_STOP STREAM RESUME_STREAM STREAM_STATS METRICS CLIENT_JOIN CLIENT_LEAVE</code></td></tr>
+    <tr><td>Core errors</td><td><code>UNKNOWN_MESSAGE NO_HANDLER INVALID_PAYLOAD</code></td></tr>
+    <tr><td>Mesh</td><td><code>MESH_BEACON RELAY_OPEN RELAY_OPEN_ACK RELAY_CHALLENGE RELAY_PROVE RELAY_CLOSE RELAY_REVOKE RELAY_PING RELAY_PONG RELAY_DATA RELAY_DATA_ACK RELAY_DOWNLINK RELAY_DOWNLINK_ACK</code></td></tr>
+    <tr><td>Mesh errors</td><td><code>RELAY_CAPACITY RELAY_NO_UPLINK RELAY_NOT_ALLOWED RELAY_NO_SESSION RELAY_RATE_LIMITED RELAY_UPLINK_FAILED RELAY_ACL_DENIED RELAY_WRONG_BROKER RELAY_IDENTITY_FAILED RELAY_IDENTITY_REQUIRED</code></td></tr>
+    <tr><td>Uplink</td><td><code>UPLINK_HELLO UPLINK_WELCOME UPLINK_DATA UPLINK_ACK UPLINK_CMD UPLINK_CMD_ACK UPLINK_ROUTE UPLINK_PING UPLINK_PONG UPLINK_BYE</code></td></tr>
+    <tr><td>Uplink errors</td><td><code>UPLINK_NOT_AUTHORISED UPLINK_ORIGIN_DENIED UPLINK_STORE_FAILED UPLINK_UNAVAILABLE UPLINK_BAD_MESSAGE</code></td></tr>
+  </table></div>
+</section>
+
+<!-- ================================================================ REFERENCE: CORE + TIMERS + PORTING -->
+<section class="doc" id="ref-core" data-section data-role="dev">
+  <span class="tag dev">Full reference</span>
+  <h2>Core models, timers, porting and versioning</h2>
+  <h3>Core models: REQ/RES, PUB/SUB, STREAMS</h3>
+  <p>These are the original NIKA models for internal apps (see <code>PROTOCOL.md</code>, <code>SECURITY.md</code>, <code>DEPLOYMENT.md</code>, <code>QUICKSTART.md</code>). They are <b>plaintext and for private networks only</b>.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Model</th><th>Socket</th><th>Guarantees</th></tr>
+    <tr><td>REQ/RES (control)</td><td>ROUTER ⇄ DEALER <code>:5555</code></td><td>Authenticated, idempotent, explicit errors</td></tr>
+    <tr><td>PUB/SUB (events)</td><td>PUB ⇄ SUB <code>:5556</code></td><td>Fire-and-forget, may miss messages</td></tr>
+    <tr><td>STREAMS (data)</td><td>over control + event sockets</td><td>Live only, sequence numbers, drop-tolerant, per-client flow control</td></tr>
+  </table></div>
+<pre><code><span class="k">from</span> api.server <span class="k">import</span> NikaServer
+<span class="k">from</span> api.client <span class="k">import</span> NikaClient
+NikaServer(control_addr=<span class="s">"tcp://127.0.0.1:5555"</span>, event_addr=<span class="s">"tcp://127.0.0.1:5556"</span>).start()
+c = NikaClient(api_key=<span class="s">"…"</span>)                  <span class="c"># CLIENT_JOIN {auth: {api_key}}</span>
+c.on_event(<span class="k">lambda</span> topic, data: ...); c.start()
+c.request(<span class="s">"get_status"</span>); c.subscribe(<span class="s">"alerts"</span>); c.start_stream(<span class="s">"numbers"</span>)</code></pre>
+  <h3>Timers at a glance</h3>
+  <div class="table-wrap"><table>
+    <tr><th>Timer</th><th>Value</th><th>Where</th></tr>
+    <tr><td>Clock window (handshake, mesh frames)</td><td>±120 s</td><td>NSC, mesh</td></tr>
+    <tr><td>Rekey</td><td>2<sup>20</sup> frames or 1 h (max epoch 255)</td><td>NSC</td></tr>
+    <tr><td>Heartbeat / session timeout</td><td>5 s / 30 s</td><td>uplink</td></tr>
+    <tr><td>Ack timeout / max reconnect backoff</td><td>15 s / 30 s</td><td>uplink client</td></tr>
+    <tr><td>Beacon / peer timeout</td><td>1 s / 3.5 s</td><td>mesh</td></tr>
+    <tr><td>Keepalive / relay timeout / cooldown</td><td>2 s / 6 s / 30 s</td><td>mesh origin</td></tr>
+    <tr><td>Recover hold</td><td>5 s</td><td>mesh origin</td></tr>
+    <tr><td>Command expiry / writeback timeout</td><td>120 s / 60 s</td><td>ATLAS</td></tr>
+    <tr><td>Grace before seeking a relay / NIKA relay retry after refusal</td><td>10 s / 15 s</td><td>Stargate</td></tr>
+  </table></div>
+  <h3>Writing an NSC peer in another language</h3>
+  <ol>
+    <li>Implement X25519, ChaCha20-Poly1305 (IETF, 96-bit nonce) and HMAC-SHA256.</li>
+    <li>Follow the key schedule above byte for byte: init with the protocol name, mix <code>S_pub</code> first, tokens <code>e, es, s, ss</code> / <code>e, ee, se</code>, a big-endian u64 timestamp as the first 8 payload bytes of message 1, and <code>split</code> → (c2s, s2c).</li>
+    <li>Frames: a 12-byte header (<code>&gt;BBHQ</code>) as AD; the nonce is 4 zero bytes ‖ the counter as LE u64; rekey label <code>NIKA-NSC-v1 rekey</code>.</li>
+    <li>Test against Python: run your client against <code>NikaUplinkServer</code> and check that <code>sessions()</code> shows your fingerprint.</li>
+  </ol>
+  <h3>Vendoring and versioning</h3>
+  <p>Copy <code>api/secure</code>, <code>api/uplink</code>, <code>api/mesh</code>, <code>api/protocol.py</code> and <code>api/envelope.py</code> into the app (Stargate <code>gateway/NIKA/</code>, ATLAS <code>backend/atlas/vendor/nika/</code>). Never edit the copy: change NIKA, run its tests, re-copy. Byte 0 of every handshake message and frame is the NSC version. An incompatible change becomes <code>NIKA-NSC-v2</code> with a new version byte, so old and new peers fail cleanly.</p>
+</section>
+
+<footer>NIKA Guide · Markdown version: <a href="NIKA_GUIDE.md">NIKA_GUIDE.md</a> · Specs: <a href="../SECURE.md">SECURE</a> · <a href="../UPLINK.md">UPLINK</a> · <a href="../MESH.md">MESH</a></footer>
+</main>
+</div>
+
+<div class="lightbox" id="lightbox" role="dialog" aria-label="Screenshot"><img alt=""></div>
+
+<script>
+(() => {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("nika-guide:" + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem("nika-guide:" + k, JSON.stringify(v)); } catch {} },
+};
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* ---------------------------------------------------------------- theme + role */
+const root = document.documentElement;
+const savedTheme = store.get("theme", null);
+if (savedTheme) root.dataset.theme = savedTheme;
+$("#themeBtn").onclick = () => {
+  const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  root.dataset.theme = dark ? "light" : "dark";
+  store.set("theme", root.dataset.theme);
+};
+function setRole(r) {
+  document.body.dataset.role = r;
+  $$(".seg button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.show === r)));
+  store.set("role", r);
+}
+$$(".seg button").forEach(b => b.onclick = () => setRole(b.dataset.show));
+setRole(store.get("role", "all"));
+$$(".path").forEach(b => b.onclick = () => { setRole(b.dataset.go); $(b.dataset.target).scrollIntoView(); });
+$("#menuBtn").onclick = () => $("#side").classList.toggle("open");
+$$("#side a").forEach(a => a.addEventListener("click", () => $("#side").classList.remove("open")));
+
+/* active nav link */
+const navLinks = $$("#side a");
+const io = new IntersectionObserver(es => {
+  es.forEach(e => {
+    if (!e.isIntersecting) return;
+    navLinks.forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
+  });
+}, { rootMargin: "-30% 0px -60% 0px" });
+$$("[data-section][id]").forEach(s => io.observe(s));
+
+/* ---------------------------------------------------------------- tabs */
+$$("[data-tabs]").forEach(bar => {
+  const btns = $$("button", bar);
+  const panels = btns.map(b => $(`[data-panel="${b.dataset.tab}"]`));
+  btns.forEach((b, i) => b.onclick = () => {
+    btns.forEach((x, j) => { x.setAttribute("aria-selected", String(i === j)); panels[j].hidden = i !== j; });
+  });
+});
+
+/* ---------------------------------------------------------------- copy buttons */
+$$("pre").forEach(pre => {
+  if (pre.classList.contains("tree")) return;
+  const b = document.createElement("button");
+  b.className = "copy"; b.textContent = "Copy";
+  b.onclick = () => {
+    const text = pre.querySelector("code")?.innerText ?? pre.innerText;
+    const done = () => { b.textContent = "Copied"; setTimeout(() => b.textContent = "Copy", 1200); };
+    navigator.clipboard?.writeText(text).then(done, () => { b.textContent = "Select & copy"; });
+  };
+  pre.appendChild(b);
+});
+
+/* ---------------------------------------------------------------- screenshots */
+const SHOTS = {
+  atlasSystem: { src: "images/atlas-system-nika.png", w: 800, h: 400, cap: "ATLAS → System: the NIKA uplink card", hs: [
+    [22, 77.5, "Status <b>Listening</b>: the NIKA server is running and gateways can connect."],
+    [27, 82.5, "<b>Address</b> to enter on each gateway (host:port). Set <code>NIKA_ADVERTISE_HOST</code> so it shows a reachable name."],
+    [31, 87.8, "<b>ATLAS public key</b>: copy this into the gateway's <i>Platform public key</i> field."],
+    [21, 93, "<b>Fingerprint</b>: the gateway shows the same 8 characters once it's connected to the right ATLAS."],
+    [67.5, 83, "<b>Connected gateways</b>: live sessions. <i>relaying for 1</i> means this gateway carries a neighbour."],
+    [55, 55.5, "The <b>nika</b> component and its bind address."]] },
+  atlasAdd: { src: "images/atlas-add-nika-gateway.png", w: 800, h: 450, cap: "ATLAS → Gateways → Add gateway, NIKA transport", hs: [
+    [38, 81, "Choose <b>NIKA uplink</b> as the way ATLAS receives the data."],
+    [28, 47.8, "<b>Topic prefix</b>: the gateway's base topic, shown on the Stargate card as <i>Topic prefix</i>."],
+    [72, 22.4, "Paste <b>this gateway's key</b> from Stargate → Settings → NIKA → Uplink."],
+    [58, 32, "<b>May relay for neighbours</b>: allow this gateway to carry other gateways' data and commands."],
+    [69, 48.4, "The values to enter on the gateway: ATLAS's address, key and fingerprint, with a copy button."],
+    [11.5, 94.9, "Save. The gateway can connect straight away."]] },
+  connected: { src: "images/stargate-uplink-connected.png", w: 800, h: 450, cap: "Stargate → Settings → NIKA: uplink connected", hs: [
+    [23.7, 40, "Badge <b>Connected</b>: the session to the platform is up."],
+    [37.5, 26, "<b>Own cloud links</b>: MQTT and NIKA are shown separately. NIKA doesn't touch MQTT."],
+    [18.7, 58.2, "<b>This gateway's key</b>, with a copy button. Register it in ATLAS."],
+    [21, 72.7, "<b>Platform fingerprint</b>: must match the fingerprint on ATLAS's System page."],
+    [91, 56, "<b>Uplink enabled</b>. MQTT keeps running either way."],
+    [65, 68.4, "<b>Platform address</b> and <b>port</b> (47900)."],
+    [70, 79.3, "<b>Platform public key</b>, pinned: the gateway talks only to the platform holding this key."],
+    [89, 90.7, "<b>Save &amp; apply</b>: applied live, no restart."]] },
+  refused: { src: "images/stargate-uplink-refused.png", w: 800, h: 280, cap: "Refused: ATLAS doesn't know this gateway's key yet", hs: [] },
+  relayed: { src: "images/stargate-nika-relayed.png", w: 800, h: 440, cap: "Stargate B: its NIKA link is down, so NIKA goes through sg-ground", hs: [
+    [20.6, 7.5, "Header badge: <b>NIKA relayed via sg-ground</b>. Only the NIKA channel is relayed."],
+    [33, 28.9, "<b>Own cloud links</b>: MQTT is still Up (sent directly), NIKA is Down."],
+    [35.6, 32, "Where NIKA traffic is going right now."],
+    [76.5, 26, "<b>Outbox backlog</b>: messages waiting, and how many are on their way through the relay."],
+    [24.4, 43, "The uplink card itself keeps trying to reconnect directly."],
+    [30, 92.7, "<b>Problem</b>: why the direct link is down."]] },
+  viaRelay: { src: "images/atlas-gateway-via-relay.png", w: 800, h: 562, cap: "ATLAS: the gateway is connected via a neighbour", hs: [
+    [27, 21.3, "<b>Connected via sg-ground</b>: data arrives, carried by a neighbour."],
+    [55, 22.4, "<b>Reached</b>: <i>Directly</i> or <i>Through &lt;relay&gt;</i>."],
+    [52.5, 29.5, "Whether this gateway may relay for others."],
+    [12, 42.7, "<b>Send command</b>: a raw command, also delivered through the relay."],
+    [11, 77.8, "Devices are stored under <b>this</b> gateway, never under the relay."]] },
+  points: { src: "images/atlas-points-write.png", w: 800, h: 282, cap: "ATLAS: points of a device, each with a Write action", hs: [
+    [89, 44.3, "<b>Write</b> opens the write dialog for this point."],
+    [62.5, 44.3, "The current value, as last reported by the device."],
+    [76, 44.3, "How the value arrives: <i>cov</i> (change of value) or <i>poll</i>."]] },
+  dialog: { src: "images/atlas-writeback-dialog.png", w: 340, h: 440, cap: "The write dialog with recent writes", hs: [
+    [50, 22.7, "<b>Action</b>: Set, Override, Auto/release, Release, Revert, Cancel override."],
+    [20.5, 37.5, "<b>Value</b>, in the point's unit."],
+    [50, 37.5, "<b>Priority</b> 1–16 (BACnet 8 = manual operator)."],
+    [18.5, 51, "<b>Send to device</b>."],
+    [41, 67.7, "<b>Written</b>, with its route: <i>over NIKA, relayed via sg-ground</i>."],
+    [16, 74.3, "<b>Not applied</b>: accepted, but a higher priority keeps another value."],
+    [17.6, 86.6, "<b>Not delivered</b>: no direct session and no relay."]] },
+  meshKey: { src: "images/mesh-02-setup-key.png", w: 800, h: 562, cap: "Mesh setup: the same mesh key on every gateway", hs: [] },
+  peers: { src: "images/mesh-04-connected-peers.png", w: 800, h: 562, cap: "Neighbours found on the LAN", hs: [] },
+  relaying: { src: "images/mesh-07-relaying.png", w: 800, h: 380, cap: "Stargate A: relaying for a neighbour", hs: [] },
+  acl: { src: "images/mesh-08-acl-denied.png", w: 800, h: 340, cap: "MQTT channel: the relay's broker refused the neighbour's topics", hs: [] },
+};
+function renderShot(fig) {
+  const s = SHOTS[fig.dataset.shot];
+  if (!s) return;
+  const frame = document.createElement("div");
+  frame.className = "shot-frame";
+  frame.innerHTML = `<img src="${s.src}" width="${s.w}" height="${s.h}" alt="${esc(s.cap)}" loading="lazy">`;
+  const list = document.createElement("ol");
+  list.className = "hs-list";
+  s.hs.forEach(([x, y, text], i) => {
+    const b = document.createElement("button");
+    b.className = "hs"; b.style.left = x + "%"; b.style.top = y + "%"; b.textContent = i + 1;
+    b.setAttribute("aria-label", "Callout " + (i + 1));
+    const li = document.createElement("li");
+    li.innerHTML = `<span class="dot">${i + 1}</span><span>${text}</span>`;
+    const on = () => { $$(".hs, li", fig).forEach(e => e.classList.remove("on")); b.classList.add("on"); li.classList.add("on"); };
+    b.onclick = on; b.onmouseenter = on; li.onclick = on; li.onmouseenter = on;
+    frame.appendChild(b); list.appendChild(li);
+  });
+  fig.innerHTML = "";
+  fig.appendChild(frame);
+  const cap = document.createElement("figcaption"); cap.textContent = s.cap + " · click to enlarge"; fig.appendChild(cap);
+  if (s.hs.length) fig.appendChild(list);
+  $("img", frame).onclick = () => { const lb = $("#lightbox"); $("img", lb).src = s.src; $("img", lb).alt = s.cap; lb.classList.add("open"); };
+}
+$("#lightbox").onclick = () => $("#lightbox").classList.remove("open");
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("#lightbox").classList.remove("open"); });
+
+/* ---------------------------------------------------------------- fingerprint (SHA-256, local) */
+function sha256(bytes) {
+  const K = new Uint32Array([0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2]);
+  const H = new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]);
+  const l = bytes.length, n = ((l + 9 + 63) >> 6) << 6, m = new Uint8Array(n);
+  m.set(bytes); m[l] = 0x80; new DataView(m.buffer).setUint32(n - 4, l * 8);
+  const W = new Uint32Array(64), r = (x, k) => (x >>> k) | (x << (32 - k));
+  for (let o = 0; o < n; o += 64) {
+    for (let i = 0; i < 16; i++) W[i] = (m[o+i*4] << 24) | (m[o+i*4+1] << 16) | (m[o+i*4+2] << 8) | m[o+i*4+3];
+    for (let i = 16; i < 64; i++) {
+      const s0 = r(W[i-15], 7) ^ r(W[i-15], 18) ^ (W[i-15] >>> 3), s1 = r(W[i-2], 17) ^ r(W[i-2], 19) ^ (W[i-2] >>> 10);
+      W[i] = (W[i-16] + s0 + W[i-7] + s1) | 0;
+    }
+    let [a, b, c, d, e, f, g, h] = H;
+    for (let i = 0; i < 64; i++) {
+      const t1 = (h + (r(e, 6) ^ r(e, 11) ^ r(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + W[i]) | 0;
+      const t2 = ((r(a, 2) ^ r(a, 13) ^ r(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+    }
+    H[0] += a; H[1] += b; H[2] += c; H[3] += d; H[4] += e; H[5] += f; H[6] += g; H[7] += h;
+  }
+  return [...H].map(x => x.toString(16).padStart(8, "0")).join("");
+}
+function fingerprintOf(text) {
+  const t = text.trim();
+  if (!t) return { empty: true };
+  if (!/^[A-Za-z0-9_-]{43}=?$/.test(t)) return { error: "A NIKA public key is 43 characters of base64url (A–Z a–z 0–9 - _)." };
+  const bin = atob(t.replace(/=$/, "").replace(/-/g, "+").replace(/_/g, "/") + "=");
+  const bytes = Uint8Array.from(bin, ch => ch.charCodeAt(0));
+  if (bytes.length !== 32) return { error: "That doesn't decode to 32 bytes." };
+  return { fp: sha256(bytes).slice(0, 8) };
+}
+function fpTool(host, labels) {
+  host.innerHTML = labels.map((l, i) => `<div><label for="${host.id}-${i}">${l}</label><input id="${host.id}-${i}" spellcheck="false" autocomplete="off" placeholder="paste a 43-character key, or an 8-character fingerprint"><div class="out" id="${host.id}-o${i}"></div></div>`).join("") +
+    `<div class="verdict" id="${host.id}-v" style="grid-column:1/-1"></div>`;
+  const ins = labels.map((_, i) => $(`#${host.id}-${i}`)), outs = labels.map((_, i) => $(`#${host.id}-o${i}`)), v = $(`#${host.id}-v`);
+  const update = () => {
+    const fps = ins.map((inp, i) => {
+      const t = inp.value.trim();
+      if (/^[0-9a-fA-F]{8}$/.test(t)) { outs[i].innerHTML = `<span class="muted">fingerprint</span> ${t.toLowerCase()}`; return t.toLowerCase(); }
+      const r = fingerprintOf(t);
+      outs[i].innerHTML = r.empty ? "" : r.error ? `<span style="color:var(--bad);font:13px var(--sans)">${r.error}</span>` : `<span class="muted">fingerprint</span> ${r.fp}`;
+      return r.fp || null;
+    });
+    if (fps.length === 2 && fps[0] && fps[1]) {
+      const same = fps[0] === fps[1];
+      v.className = "verdict show " + (same ? "ok" : "bad");
+      v.textContent = same ? "✓ Match: both sides refer to the same key." : "✗ Different keys: re-copy the key from the platform (or the gateway).";
+    } else v.className = "verdict";
+  };
+  ins.forEach(i => i.addEventListener("input", update));
+}
+
+/* ---------------------------------------------------------------- pairing wizard */
+const WIZ = [
+  { t: "Copy ATLAS's key", shot: "atlasSystem", body: `<p>In ATLAS open <b>System</b>. On the <b>NIKA uplink</b> card, copy the <b>address</b> and the <b>ATLAS public key</b>, and note the <b>fingerprint</b>.</p>
+     <div class="callout">The status must say <b>Listening</b>. If it doesn't, the NIKA server isn't running (check <code>NIKA_ENABLED</code> and the ATLAS logs).</div>` },
+  { t: "Copy the gateway's key", shot: "connected", body: `<p>In the Stargate UI open <b>Settings → NIKA</b>. On <b>Uplink to a NIKA platform</b>, copy <b>This gateway's key</b> with the copy button.</p>
+     <div class="callout warn">The key file is <code>&lt;DATA_DIR&gt;/nika/identity.key</code>. <b>Keep it:</b> it is the gateway's identity. If it's lost, the gateway gets a new key and must be paired again.</div>` },
+  { t: "Register the gateway in ATLAS", shot: "atlasAdd", body: `<p>ATLAS → <b>Gateways → Add gateway</b>. Set the <b>name</b> and <b>topic prefix</b> (e.g. <code>stargate/gateway/sg-roof</code>), choose <b>NIKA uplink</b>, and paste the gateway's key. Leave <b>May relay for neighbours</b> on if this gateway should be able to carry others.</p>` },
+  { t: "Point the gateway at ATLAS", shot: "connected", body: `<p>Back on the Stargate uplink card: turn on <b>Uplink enabled</b>, enter the <b>platform address</b> and <b>port 47900</b>, paste <b>ATLAS's public key</b>, then click <b>Save &amp; apply</b>. It takes effect immediately.</p>
+     <div class="callout ok">MQTT is not affected by any of this: the gateway keeps publishing to its broker as before.</div>` },
+  { t: "Check both sides", shot: "viaRelay", body: `<p>Stargate shows <b>Connected</b>, and ATLAS shows the gateway <b>Connected</b> (<i>directly</i>, or <i>via a neighbour</i> if its own link is down). Devices appear as data arrives.</p>
+     <p><b>Compare fingerprints.</b> Paste ATLAS's key (or its 8-character fingerprint) and the <i>Platform fingerprint</i> from the Stargate card:</p><div class="fp" id="fpTool1"></div>` },
+];
+let wizAt = Math.min(store.get("wizAt", 0), WIZ.length - 1);
+const wizDone = new Set(store.get("wizDone", []));
+function renderWiz() {
+  $("#wizSteps").innerHTML = WIZ.map((s, i) => `<li><button ${i === wizAt ? 'aria-current="step"' : ""} class="${wizDone.has(i) ? "done" : ""}" data-i="${i}"><span class="num">${wizDone.has(i) ? "✓" : i + 1}</span>${s.t}</button></li>`).join("");
+  $$("#wizSteps button").forEach(b => b.onclick = () => { wizAt = +b.dataset.i; store.set("wizAt", wizAt); renderWiz(); });
+  const s = WIZ[wizAt];
+  $("#wizBody").innerHTML = `<h3>Step ${wizAt + 1}: ${s.t}</h3>${s.body}<figure class="shot" data-shot="${s.shot}"></figure>
+    <div class="step-nav">
+      <button class="btn" id="wizPrev" ${wizAt === 0 ? "disabled" : ""}>← Back</button>
+      <label class="check"><input type="checkbox" id="wizChk" ${wizDone.has(wizAt) ? "checked" : ""}> I've done this</label>
+      <button class="btn primary" id="wizNext">${wizAt === WIZ.length - 1 ? "Finish" : "Next →"}</button>
+    </div>`;
+  renderShot($("#wizBody figure"));
+  if ($("#fpTool1")) fpTool($("#fpTool1"), ["ATLAS public key (or fingerprint)", "Platform fingerprint on Stargate"]);
+  $("#wizChk").onchange = e => { e.target.checked ? wizDone.add(wizAt) : wizDone.delete(wizAt); store.set("wizDone", [...wizDone]); renderWiz(); };
+  $("#wizPrev").onclick = () => { wizAt--; store.set("wizAt", wizAt); renderWiz(); };
+  $("#wizNext").onclick = () => {
+    wizDone.add(wizAt); store.set("wizDone", [...wizDone]);
+    if (wizAt < WIZ.length - 1) { wizAt++; store.set("wizAt", wizAt); }
+    renderWiz();
+  };
+  $("#wizBar").style.width = (wizDone.size / WIZ.length * 100) + "%";
+  $("#wizCount").textContent = wizDone.size === WIZ.length ? "All steps done: the gateway is paired. 🎉" : `${wizDone.size} of ${WIZ.length} steps done`;
+}
+renderWiz();
+fpTool($("#fpTool2"), ["Key A", "Key B"]);
+
+/* ---------------------------------------------------------------- status badges */
+const BADGES = [
+  ["Connected", "ok", "The session is up. Queued data drains, and commands can arrive.", "Nothing to do."],
+  ["Connecting", "warn", "The gateway is trying to reach the platform.", "Wait a few seconds. If it stays here, check the address, the port (47900) and the firewall. From the gateway: <code>nc -vz &lt;atlas&gt; 47900</code>."],
+  ["Refused", "bad", "The platform answered, but it <b>doesn't know this gateway's key</b> (not registered, disabled, or not set to NIKA).", "Register or re-paste the gateway's key in ATLAS. The gateway retries slowly by itself; no restart is needed."],
+  ["Disconnected", "grey", "No link right now. Data waits in the outbox, or the mesh carries it.", "Look at <i>Waiting to send</i> and the network. If a neighbour has a link, the header shows <b>NIKA relayed via …</b>."],
+  ["Misconfigured", "bad", "The platform address or public key is missing or invalid.", "Fill both in and click Save &amp; apply."],
+  ["Off", "grey", "The uplink is disabled. MQTT is unaffected.", "Turn on <b>Uplink enabled</b> if this gateway should use NIKA."],
+];
+$("#badgeBar").innerHTML = BADGES.map((b, i) => `<button class="badge ${b[1]}" data-i="${i}" aria-pressed="false">${b[0]}</button>`).join("");
+$$("#badgeBar .badge").forEach(btn => btn.onclick = () => {
+  const b = BADGES[+btn.dataset.i];
+  $$("#badgeBar .badge").forEach(x => x.setAttribute("aria-pressed", String(x === btn)));
+  $("#badgeExplain").innerHTML = `<h4>${b[0]}</h4><p style="margin:.2em 0">${b[2]}</p><p style="margin:.2em 0"><b>What to do:</b> ${b[3]}</p>`;
+});
+$("#badgeBar .badge").click();
+
+/* ---------------------------------------------------------------- writeback state machine */
+const SM = {
+  pending: [40, 100, "Sent, waiting", "ATLAS delivered the write to the gateway (directly or through a relay) and is waiting for the device's answer. It refreshes every 1.5 s while waiting."],
+  success: [300, 20, "Written", "The device accepted the write (<code>SUCCESS</code> on <code>&lt;prefix&gt;/ack/cmd</code>)."],
+  not_applied: [300, 100, "Not applied", "The device accepted it, but a higher priority or local logic keeps another value. <i>Device still reports X</i> shows that value. This state <b>supersedes</b> Written."],
+  failed: [300, 180, "Failed", "The gateway or the device refused the write. Hover the badge in ATLAS for the reason."],
+  timeout: [540, 180, "No answer", "No acknowledgement within <code>WRITEBACK_TIMEOUT_S</code> (60 s). Check the device and the Stargate logs for the <code>writebackId</code>."],
+  undeliverable: [540, 40, "Not delivered", "The gateway couldn't be reached at all: no direct session and no relay announced for it. Nothing was sent."],
+};
+(() => {
+  const svg = $("#smSvg"), W = 140, H = 40;
+  // explicit paths: the layout is fixed, so hand-placed lines read better than computed ones
+  let out = `
+    <line class="ar" x1="180" y1="112" x2="298" y2="42"/><text class="al" x="200" y="66">SUCCESS</text>
+    <line class="ar" x1="180" y1="120" x2="298" y2="120"/><text class="al" x="196" y="113">NOT_APPLIED</text>
+    <line class="ar" x1="180" y1="128" x2="298" y2="198"/><text class="al" x="212" y="182">FAILED</text>
+    <line class="ar" x1="370" y1="60" x2="370" y2="98"/><text class="al" x="378" y="84">supersedes</text>
+    <path class="ar" d="M110 140 C 110 250, 610 255, 610 222"/><text class="al" x="300" y="254">no answer within 60 s</text>
+    <text class="al" x="610" y="32" text-anchor="middle">no route: nothing sent</text>`;
+  Object.entries(SM).forEach(([k, [x, y, label]]) => {
+    out += `<g class="st" data-k="${k}" tabindex="0" role="button" aria-label="${label}"><rect x="${x}" y="${y}" width="${W}" height="${H}" rx="9"/><text x="${x + W / 2}" y="${y + H / 2 + 5}" text-anchor="middle">${label}</text></g>`;
+  });
+  svg.insertAdjacentHTML("beforeend", out);
+  const pick = k => {
+    $$(".st", svg).forEach(g => g.classList.toggle("on", g.dataset.k === k));
+    $("#smExplain").innerHTML = `<h4>${SM[k][2]}</h4><p style="margin:.2em 0">${SM[k][3]}</p>`;
+  };
+  $$(".st", svg).forEach(g => { g.onclick = () => pick(g.dataset.k); g.onkeydown = e => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), pick(g.dataset.k)); });
+  pick("pending");
+})();
+
+/* ---------------------------------------------------------------- troubleshooting */
+const TS = [
+  ["Stargate stuck on Connecting", "Wrong address or port, a firewall, or ATLAS's NIKA server isn't running.", "Check ATLAS → System → NIKA uplink shows <b>Listening</b>. From the gateway run <code>nc -vz &lt;atlas&gt; 47900</code>."],
+  ["Refused", "The gateway key isn't registered in ATLAS, the gateway is disabled, or its transport isn't NIKA.", "Register or re-paste the key in ATLAS and enable the gateway. The gateway retries by itself."],
+  ["Connected, but the fingerprints don't match", "The wrong platform key was pasted on Stargate (or this is another ATLAS).", "Re-copy ATLAS's key. Use the fingerprint checker in the pairing guide."],
+  ["ATLAS NIKA card: “cannot be decrypted”", "ATLAS's SECRET_KEY changed, so its stored NIKA key can't be read.", "Restore the old SECRET_KEY. ATLAS refuses to make a new key on purpose, because every gateway would need re-pairing."],
+  ["B isn't relayed although A is up", "Different mesh keys, UDP 47800 blocked, A's relay disabled or at capacity, or “May relay” off for A in ATLAS.", "Use the same mesh key everywhere, add static peers, and check the ATLAS gateway setting."],
+  ["B relayed, but ATLAS rejects B's data", "B isn't registered in ATLAS, or A isn't allowed to relay (UPLINK_ORIGIN_DENIED).", "Register B and enable “May relay” on A. Until then A refuses B's NIKA messages (RELAY_ACL_DENIED), and B keeps them safely in its outbox."],
+  ["Writeback stays “No answer”", "The gateway got the write but sent no ack (device offline, unknown point).", "Look for the writebackId in the Stargate logs and check the device."],
+  ["“Not delivered” on a write", "There was no direct session and no relay for that gateway when you clicked Send.", "Bring the gateway online (or a neighbour with the mesh), then write again."],
+  ["“Waiting to send” keeps growing", "No link and no neighbour to relay through.", "Restore the network. The backlog drains by itself, oldest first."],
+  ["The gateway has a new key after a reinstall", "identity.key was not kept.", "Re-pair: replace the key in ATLAS. Editing it disconnects the old session."],
+  ["MQTT relaying refused (ACL denied)", "The neighbour's broker doesn't allow B's topics, or the neighbour uses a different broker.", "Allow B's topics in the broker ACL, or set preferred relays to a gateway on the same broker. NIKA relaying is unaffected."],
+];
+$("#tsList").innerHTML = TS.map(t => `<details class="q"><summary>${t[0]}</summary><div><p style="margin:.2em 0"><b>Why:</b> ${t[1]}</p><p style="margin:.2em 0"><b>Fix:</b> ${t[2]}</p></div></details>`).join("");
+$("#tsFilter").addEventListener("input", e => {
+  const q = e.target.value.trim().toLowerCase();
+  $$("#tsList details").forEach(d => { const hit = !q || d.textContent.toLowerCase().includes(q); d.style.display = hit ? "" : "none"; d.open = !!q && hit; });
+});
+
+/* ---------------------------------------------------------------- handshake tokens */
+const HS = {
+  1: [["e", "", "The client's fresh <b>ephemeral</b> public key, sent in the clear. A new one for every connection: this is what gives forward secrecy."],
+      ["es", "dh", "DH(client ephemeral, server static). Only the real server (holder of the pinned key) can compute this. From here on, everything is encrypted."],
+      ["s", "enc", "The client's <b>static</b> public key, <b>encrypted</b>. The server learns <i>which</i> gateway this is; an eavesdropper doesn't. The server now calls <code>authorize(key)</code>."],
+      ["ss", "dh", "DH(client static, server static). Proves the client really holds the private half of the key it just sent."],
+      ["payload", "enc", "An encrypted timestamp. The server rejects handshakes more than ±120 s off (replayed handshakes are useless)."]],
+  2: [["e", "", "The server's fresh ephemeral public key."],
+      ["ee", "dh", "DH(ephemeral, ephemeral): forward secrecy for the whole session."],
+      ["se", "dh", "DH(server static, client ephemeral): proves to the client that it reached the <b>real</b> server."],
+      ["payload", "enc", "An encrypted server payload. Then <b>split</b>: two transport keys, one per direction. The session starts at counter 0."]],
+};
+$$("[data-hs]").forEach(box => {
+  const n = box.dataset.hs;
+  box.innerHTML = HS[n].map((t, i) => `<button class="tok ${t[1]}" data-n="${n}" data-i="${i}" aria-pressed="false">${t[0]}</button>`).join("");
+});
+$$(".tok").forEach(b => b.onclick = () => {
+  const t = HS[b.dataset.n][+b.dataset.i];
+  $$(".tok").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  $("#hsExplain").innerHTML = `<h4><code>${t[0]}</code> <span class="muted" style="font-weight:400;font-size:13px">message ${b.dataset.n}${t[1] === "dh" ? " · Diffie–Hellman, mixed into the key" : t[1] === "enc" ? " · encrypted" : " · clear"}</span></h4><p style="margin:.2em 0">${t[2]}</p>`;
+});
+
+/* ---------------------------------------------------------------- message explorer */
+const MSGS = [
+  ["UPLINK_HELLO", "c→s", "First message after the handshake. <code>meta</code> is app-defined: Stargate sends its base topic, gateway id and software. The platform gets it in <code>on_session</code>.", { t: "UPLINK_HELLO", meta: { base_topic: "stargate/gateway/sg-roof", gateway_id: "sg-roof", software: "stargate" } }],
+  ["UPLINK_WELCOME", "s→c", "The session is accepted. <code>peer_id</code> is what the platform's <code>authorize</code> returned (ATLAS uses the key text).", { t: "UPLINK_WELCOME", peer_id: "uISfjnXkiJ4MNVxi-Lk_H9AyiiZzRL0Dgdv7Iulq-GI" }],
+  ["UPLINK_DATA", "c→s", "One message: a topic plus a payload (<code>p</code> for UTF-8 text, <code>pb</code> for base64). <code>origin</code> is present only when relaying for another peer. The client's <code>publish()</code> waits for the matching ack.", { t: "UPLINK_DATA", msg_id: "sg-roof:nk:42", topic: "stargate/gateway/sg-roof/data/AHU-01", p: "{\"id\":\"AHU-01\",\"points\":[…]}", qos: 1 }],
+  ["UPLINK_ACK", "s→c", "Sent <b>after</b> the platform's <code>on_data</code> returned, so <code>ok: true</code> means stored. When <code>ok</code> is false, <code>reason</code> carries an error code or the app's own text.", { t: "UPLINK_ACK", msg_id: "sg-roof:nk:42", ok: true }],
+  ["UPLINK_ACK (reject)", "s→c", "An explicit rejection. The gateway marks the row failed instead of retrying forever (except for transient reasons such as <code>UPLINK_STORE_FAILED</code>).", { t: "UPLINK_ACK", msg_id: "sg-ground:relay:9", ok: false, reason: "UPLINK_ORIGIN_DENIED" }],
+  ["UPLINK_ROUTE", "c→s", "“I carry <code>origin</code>.” The platform's <code>on_route(relay, origin, active)</code> decides. It's acked as <code>msg_id = route:&lt;origin&gt;</code>. Routes are replayed after a reconnect.", { t: "UPLINK_ROUTE", origin: "<sg-roof key>", active: true }],
+  ["UPLINK_CMD", "s→c", "A command. <code>target</code> is set when it's for a peer this client relays for; the client then forwards it over the mesh. Expired and duplicate commands are refused before the app sees them.", { t: "UPLINK_CMD", command_id: "b7e1…", topic: "stargate/gateway/sg-roof/cmd", p: "{\"point_id\":\"AV-12\",\"data\":22.5,\"priority\":8,\"writebackId\":\"…\"}", expires_at: 1792252000, target: "<sg-roof key>" }],
+  ["UPLINK_CMD_ACK", "c→s", "Delivery status: <code>accepted</code>, <code>duplicate</code>, <code>expired</code>, <code>rejected</code>, <code>failed</code>, or the app's own. The <i>device's</i> answer to a writeback comes later, as ordinary data on <code>&lt;prefix&gt;/ack/cmd</code>.", { t: "UPLINK_CMD_ACK", command_id: "b7e1…", status: "accepted" }],
+  ["UPLINK_PING / PONG", "both", "Heartbeat every 5 s. The server drops a session after 30 s of silence, along with its routes.", { t: "UPLINK_PING" }],
+  ["UPLINK_BYE", "both", "The session ends, e.g. when ATLAS disconnects a gateway whose key was edited or disabled.", { t: "UPLINK_BYE" }],
+  ["E frame", "s→c", "The only plaintext frame: a refusal during the handshake when <code>authorize</code> returned None. Stargate shows <b>Refused</b>.", { code: "UPLINK_NOT_AUTHORISED" }],
+];
+$("#msgList").innerHTML = MSGS.map((m, i) => `<button data-i="${i}" aria-pressed="false"><span>${m[0]}</span><span class="dir">${m[1]}</span></button>`).join("");
+$$("#msgList button").forEach(b => b.onclick = () => {
+  const m = MSGS[+b.dataset.i];
+  $$("#msgList button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  $("#msgDetail").innerHTML = `<h3 style="margin-top:0"><code>${m[0]}</code> <span class="muted" style="font-size:13px;font-weight:400">${m[1] === "c→s" ? "gateway → platform" : m[1] === "s→c" ? "platform → gateway" : "either way"}</span></h3><p>${m[2]}</p><pre><code>${esc(JSON.stringify(m[3], null, 2))}</code></pre>`;
+});
+$("#msgList button:nth-child(3)").click();
+
+/* ---------------------------------------------------------------- sequence diagrams */
+const LANES = { B: ["sg-roof (B)", 120], A: ["sg-ground (A)", 380], P: ["ATLAS", 640] };
+const SEQ = {
+  pair: [
+    ["B", "P", "H1  e, es, s, ss, ts", "NSC message 1. ATLAS decrypts the gateway's static key and calls <code>authorize(key)</code>: is there an enabled NIKA gateway with this key?", null],
+    ["P", "B", "H2  e, ee, se", "NSC message 2. Both sides now hold two transport keys. If the key were unknown, this would be an <code>E {UPLINK_NOT_AUTHORISED}</code> frame instead, and Stargate would show <b>Refused</b>.", null],
+    ["B", "P", "UPLINK_HELLO", "App meta goes to <code>on_session</code>. ATLAS marks the gateway Connected (route <i>direct</i>).", { t: "UPLINK_HELLO", meta: { base_topic: "stargate/gateway/sg-roof", gateway_id: "sg-roof" } }],
+    ["P", "B", "UPLINK_WELCOME", "The session is accepted. Stargate's badge turns <b>Connected</b>, and it starts draining <code>nika_outbox</code>.", { t: "UPLINK_WELCOME", peer_id: "<sg-roof key>" }],
+    ["B", "P", "UPLINK_DATA #42", "Outbox row 42, oldest first. Up to 50 are in flight; the server processes them in order.", { t: "UPLINK_DATA", msg_id: "sg-roof:nk:42", topic: "stargate/gateway/sg-roof/data/AHU-01", qos: 1 }],
+    ["P", "P", "on_data → ingest → COMMIT", "ATLAS parses with the Stargate connector and commits to Postgres, via the same <code>ingest()</code> path MQTT uses.", null],
+    ["P", "B", "UPLINK_ACK ok", "Stored. Stargate marks row 42 sent. If ATLAS had failed to store it, the reason would come back, and the row would stay queued.", { t: "UPLINK_ACK", msg_id: "sg-roof:nk:42", ok: true }],
+  ],
+  relay: [
+    ["B", "B", "NIKA link down > grace", "B's uplink has been down for <code>MESH_UPLINK_GRACE_S</code>. A's beacons say <code>{\"nika\": true}</code>, so B looks for a relay for the NIKA channel. MQTT keeps going directly.", null],
+    ["B", "A", "RELAY_OPEN", "B opens a mesh session with its session meta, including the fingerprint of the platform it pairs with.", { t: "RELAY_OPEN", meta: { nika_server: "bbd4331d" } }],
+    ["A", "B", "RELAY_OPEN_ACK ok", "A checks that it talks to the <b>same</b> platform and has capacity. B's NIKA tab: <b>NIKA relayed via sg-ground</b>.", null],
+    ["B", "A", "RELAY_DATA ch=nika #42", "Outbox row 42 goes over the mesh, on the NIKA channel.", { t: "RELAY_DATA", ch: "nika", msg_id: "sg-roof:nk:42", topic: "stargate/gateway/sg-roof/data/AHU-01" }],
+    ["A", "P", "UPLINK_ROUTE origin=B", "A announces that it carries B (once per origin; concurrent calls share it). ATLAS's <code>on_route</code>: is A allowed to relay, and is B a known NIKA gateway?", { t: "UPLINK_ROUTE", origin: "<sg-roof key>", active: true }],
+    ["A", "P", "UPLINK_DATA origin=B", "The data is sent with <code>origin</code> = B. ATLAS stores it <b>under B</b> and shows B “Connected via sg-ground”.", { t: "UPLINK_DATA", msg_id: "sg-roof:nk:42", origin: "<sg-roof key>", topic: "stargate/gateway/sg-roof/data/AHU-01" }],
+    ["P", "A", "UPLINK_ACK ok", "Stored. Had ATLAS refused the route in step 5, A would not send the data at all: it answers B with <code>RELAY_ACL_DENIED</code>, and B keeps the row queued and retries later.", { t: "UPLINK_ACK", msg_id: "sg-roof:nk:42", ok: true }],
+    ["A", "B", "RELAY_DATA_ACK ok", "B marks row 42 sent, so it won't be sent again when B's own link returns.", { t: "RELAY_DATA_ACK", msg_id: "sg-roof:nk:42", ok: true, ch: "nika" }],
+  ],
+  write: [
+    ["P", "P", "POST /writeback", "A user clicks Write. ATLAS builds Stargate's payload with a new <code>writebackId</code> and asks NIKA for B's route: <i>via sg-ground</i>.", { command_type: "SET", value: 22.5, priority: 8 }],
+    ["P", "A", "UPLINK_CMD target=B", "Sent to the relay with <code>target</code> = B. The write row is <b>Sent, waiting</b>, with route “via sg-ground”.", { t: "UPLINK_CMD", command_id: "c-91", topic: "stargate/gateway/sg-roof/cmd", target: "<sg-roof key>", expires_at: "now+120s" }],
+    ["A", "B", "RELAY_DOWNLINK", "A doesn't run it: <code>target</code> is set, so it forwards the command over the mesh.", { t: "RELAY_DOWNLINK", command_id: "c-91", topic: "stargate/gateway/sg-roof/cmd" }],
+    ["B", "A", "RELAY_DOWNLINK_ACK", "B de-duplicates it (shared <code>CommandGuard</code>), checks the expiry and runs it through its normal command handler: a BACnet write.", { t: "RELAY_DOWNLINK_ACK", command_id: "c-91", status: "accepted" }],
+    ["A", "P", "UPLINK_CMD_ACK accepted", "Delivery is confirmed. The device's answer comes next.", { t: "UPLINK_CMD_ACK", command_id: "c-91", status: "accepted" }],
+    ["B", "A", "RELAY_DATA …/ack/cmd", "Stargate publishes the device's answer on <code>&lt;base&gt;/ack/cmd</code>, like any message. It's queued in nika_outbox and relayed.", { topic: "stargate/gateway/sg-roof/ack/cmd", state: "SUCCESS", writebackId: "…" }],
+    ["A", "P", "UPLINK_DATA origin=B", "ATLAS's ingest routes <code>ack/</code> topics to the command service, which matches the <code>writebackId</code>.", null],
+    ["P", "P", "state → Written", "The write shows <b>Written</b> with the route “over NIKA, relayed via sg-ground”. A later NOT_APPLIED would supersede it.", null],
+  ],
+};
+let seqKey = "pair", seqAt = 0, seqTimer = null;
+function renderSeq() {
+  const steps = SEQ[seqKey], top = 60, gap = 44, h = top + steps.length * gap + 20;
+  const svg = $("#seqSvg");
+  svg.setAttribute("viewBox", `0 0 760 ${h}`);
+  let s = "";
+  Object.values(LANES).forEach(([name, x]) => {
+    s += `<line class="lane" x1="${x}" y1="40" x2="${x}" y2="${h - 6}"/><g class="head"><rect x="${x - 70}" y="6" width="140" height="32" rx="8"/><text x="${x}" y="27" text-anchor="middle">${name}</text></g>`;
+  });
+  steps.forEach(([f, t, label], i) => {
+    const y = top + i * gap + 14, x1 = LANES[f][1], x2 = LANES[t][1];
+    const cls = i < seqAt ? "past" : i === seqAt ? "now" : "future";
+    const col = cls === "now" ? "var(--primary)" : "var(--muted)";
+    if (f === t) {
+      const d = x1 > 500 ? -1 : 1;   // the rightmost lane loops to the left so its label stays inside
+      s += `<g class="msg ${cls}"><path d="M${x1} ${y - 8} h${40 * d} v16 h${-40 * d}" fill="none" stroke="${col}" stroke-width="${cls === "now" ? 3 : 2}"/><text x="${x1 + 48 * d}" y="${y + 4}" text-anchor="${d > 0 ? "start" : "end"}" fill="${col}">${esc(label)}</text></g>`;
+    } else {
+      const dir = x2 > x1 ? 1 : -1, ax = x2 - dir * 4;
+      s += `<g class="msg ${cls}"><line x1="${x1}" y1="${y}" x2="${ax}" y2="${y}" stroke="${col}"/><path d="M${ax} ${y} l${-dir * 9} -5 v10z" fill="${col}"/><text x="${(x1 + x2) / 2}" y="${y - 7}" text-anchor="middle" fill="${col}">${esc(label)}</text></g>`;
+    }
+  });
+  svg.innerHTML = s;
+  const st = steps[seqAt];
+  $("#seqDetail").innerHTML = `<b>${seqAt + 1}. ${esc(st[2])}</b><p style="margin:.3em 0">${st[3]}</p>${st[4] ? `<pre><code>${esc(JSON.stringify(st[4], null, 2))}</code></pre>` : ""}`;
+  $("#seqPos").textContent = `Step ${seqAt + 1} of ${steps.length}`;
+  $("#seqPrev").disabled = seqAt === 0;
+  $("#seqNext").disabled = seqAt === steps.length - 1;
+}
+const seqStop = () => { clearInterval(seqTimer); seqTimer = null; $("#seqPlay").textContent = "▶ Play"; };
+$("#seqPrev").onclick = () => { seqStop(); if (seqAt > 0) { seqAt--; renderSeq(); } };
+$("#seqNext").onclick = () => { seqStop(); if (seqAt < SEQ[seqKey].length - 1) { seqAt++; renderSeq(); } };
+$("#seqPlay").onclick = () => {
+  if (seqTimer) return seqStop();
+  if (seqAt === SEQ[seqKey].length - 1) seqAt = 0;
+  renderSeq();
+  $("#seqPlay").textContent = "⏸ Pause";
+  seqTimer = setInterval(() => { if (seqAt >= SEQ[seqKey].length - 1) return seqStop(); seqAt++; renderSeq(); }, 2200);
+};
+$("#seqBox").addEventListener("keydown", e => { if (e.key === "ArrowRight") $("#seqNext").click(); if (e.key === "ArrowLeft") $("#seqPrev").click(); });
+$$("#seqTabs button").forEach(b => b.onclick = () => {
+  seqStop();
+  $$("#seqTabs button").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+  seqKey = b.dataset.seq; seqAt = 0; renderSeq();
+});
+renderSeq();
+
+/* ---------------------------------------------------------------- platform checklist */
+const PCHK = [
+  "Generate the platform key once, and store it safely (encrypted at rest). Losing it means re-pairing every gateway.",
+  "Show the public key and fingerprint to operators, with a copy button.",
+  "authorize(): allow only known, enabled gateways; return a stable peer id.",
+  "on_data(): commit <b>before</b> returning; return a reason string to reject. Never drop silently.",
+  "Map <code>dm.origin</code> (not <code>dm.peer_id</code>) to the gateway whose data it is.",
+  "Ack and ignore topics you don't use: NIKA carries everything a gateway publishes.",
+  "De-duplicate on <code>msg_id</code> (a retry after <code>UplinkUnavailable</code> may resend a stored message).",
+  "on_route(): decide per relay and origin; show “connected via” in the UI.",
+  "Disconnect the session when a gateway's key is edited or the gateway is disabled.",
+  "Commands: unique <code>command_id</code>, an <code>expires_at</code>, and handle a <code>None</code> route (unreachable).",
+];
+const pDone = new Set(store.get("pchk", []));
+$("#platCheck").innerHTML = PCHK.map((t, i) => `<label class="check" style="display:flex;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border)"><input type="checkbox" data-i="${i}" ${pDone.has(i) ? "checked" : ""} style="margin-top:4px"> <span>${t}</span></label>`).join("");
+$$("#platCheck input").forEach(c => c.onchange = () => { c.checked ? pDone.add(+c.dataset.i) : pDone.delete(+c.dataset.i); store.set("pchk", [...pDone]); });
+
+/* ---------------------------------------------------------------- render screenshots */
+$$("figure.shot[data-shot]").forEach(renderShot);
+
+/* ---------------------------------------------------------------- topology simulator */
+const N = { P: [600, 60, "ATLAS", "NIKA platform"], M: [160, 60, "Nectar broker", "MQTT"], B: [160, 290, "sg-roof (B)", ""], A: [600, 290, "sg-ground (A)", ""] };
+const L = { bN: ["B", "P", "NIKA"], bM: ["B", "M", "MQTT"], aN: ["A", "P", "NIKA"], aM: ["A", "M", "MQTT"], mesh: ["B", "A", "mesh"] };
+const S = { bN: true, bM: true, aN: true, aM: true, mesh: true, allow: true };
+let backlog = { nika: 0, mqtt: 0 }, busy = false;
+const pt = k => [N[k][0], N[k][1]];
+function routeFor(ch) {
+  const own = ch === "nika" ? S.bN : S.bM, aUp = ch === "nika" ? S.aN : S.aM;
+  if (own) return "direct";
+  if (S.mesh && aUp) return "relay";
+  return "none";
+}
+function drawTopo() {
+  let l = "";
+  Object.entries(L).forEach(([k, [a, b, label]]) => {
+    const [x1, y1] = pt(a), [x2, y2] = pt(b);
+    const cls = k === "mesh" ? (S.mesh ? "mesh up" : "off") : (S[k] ? "up" : "down");
+    // diagonals cross in the middle: label them near the gateway end instead
+    const t = k === "bN" || k === "aM" ? 0.22 : 0.5;
+    const mx = x1 + (x2 - x1) * t, my = y1 + (y2 - y1) * t;
+    const off = k === "mesh" ? [0, -12] : k === "bN" ? [-22, -10] : k === "aM" ? [22, -10] : k === "bM" ? [-28, 0] : [28, 0];
+    l += `<line class="link ${cls}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+    l += `<line class="hit" data-k="${k}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"><title>Click to ${S[k] ? "cut" : "restore"} ${label}</title></line>`;
+    const state = k === "mesh" ? (S.mesh ? "mesh" : "mesh off") : `${label} ${S[k] ? "" : "✕"}`;
+    l += `<text class="lbl" x="${mx + off[0]}" y="${my + off[1]}" text-anchor="middle" style="fill:${k === "mesh" ? "var(--violet)" : S[k] ? "var(--ok)" : "var(--bad)"}">${state}</text>`;
+  });
+  $("#links").innerHTML = l;
+  const bStat = ch => { const r = routeFor(ch); return r === "direct" ? "direct" : r === "relay" ? "via A" : "queued"; };
+  N.B[3] = `MQTT ${bStat("mqtt")} · NIKA ${bStat("nika")}`;
+  N.A[3] = (routeFor("nika") === "relay" || routeFor("mqtt") === "relay") ? "relaying for B" : "direct";
+  let n = "";
+  Object.entries(N).forEach(([k, [x, y, name, sub]]) => {
+    n += `<g class="node"><rect x="${x - 95}" y="${y - 30}" width="190" height="60" rx="12"/><text x="${x}" y="${y - 4}" text-anchor="middle">${name}</text><text class="sub" x="${x}" y="${y + 15}" text-anchor="middle">${sub}</text></g>`;
+  });
+  $("#nodes").innerHTML = n;
+  $$("#links .hit").forEach(h => h.onclick = () => { if (busy) return; S[h.dataset.k] = !S[h.dataset.k]; sync(); });
+  const atlasB = routeFor("nika") === "direct" ? "Connected · direct" : routeFor("nika") === "relay" ? (S.allow ? "Connected via sg-ground" : "Relay refused") : "Offline";
+  const sgB = routeFor("nika") === "relay" ? "NIKA relayed via sg-ground" : routeFor("nika") === "none" ? "NIKA: no link" : "Direct to cloud";
+  $("#simStatus").innerHTML = `<div class="stat"><b>sg-roof NIKA tab</b>${sgB}</div><div class="stat"><b>ATLAS shows sg-roof</b>${atlasB}</div><div class="stat"><b>sg-roof waiting to send</b>NIKA ${backlog.nika} · MQTT ${backlog.mqtt}</div>`;
+}
+function sync() {
+  $$("[data-link]").forEach(i => i.checked = S[i.dataset.link]);
+  drawTopo();
+}
+$$("[data-link]").forEach(i => i.onchange = () => { if (busy) { i.checked = S[i.dataset.link]; return; } S[i.dataset.link] = i.checked; sync(); log(`${i.parentElement.textContent.trim()}: ${i.checked ? "on" : "off"}`, "info"); });
+function log(msg, cls = "") {
+  const d = document.createElement("div"); d.className = cls; d.textContent = msg;
+  const box = $("#simLog"); box.appendChild(d); box.scrollTop = box.scrollHeight;
+}
+function hop(a, b, color) {
+  return new Promise(res => {
+    const [x1, y1] = pt(a), [x2, y2] = pt(b);
+    if (reduced) return setTimeout(res, 120);
+    const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    c.setAttribute("r", 9); c.setAttribute("class", "packet"); c.setAttribute("fill", color);
+    $("#packets").appendChild(c);
+    const t0 = performance.now(), dur = 650;
+    const step = now => {
+      const t = Math.min(1, (now - t0) / dur), e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      c.setAttribute("cx", x1 + (x2 - x1) * e); c.setAttribute("cy", y1 + (y2 - y1) * e);
+      t < 1 ? requestAnimationFrame(step) : (c.remove(), res());
+    };
+    requestAnimationFrame(step);
+  });
+}
+const NIKA_C = "var(--primary)", MQTT_C = "var(--warn)", ACK_C = "var(--ok)", BAD_C = "var(--bad)";
+async function sendReading() {
+  busy = true;
+  log("— sg-roof publishes data/AHU-01 (one tap → MQTT and nika_outbox)", "info");
+  const mq = (async () => {
+    const r = routeFor("mqtt");
+    if (r === "direct") { await hop("B", "M", MQTT_C); log("MQTT: published directly to the broker ✓", "ok"); }
+    else if (r === "relay") { await hop("B", "A", MQTT_C); await hop("A", "M", MQTT_C); log("MQTT: relayed by sg-ground on its broker connection ✓", "ok"); }
+    else { backlog.mqtt++; log("MQTT: no link and no relay → kept in mqtt_outbox", "warn"); }
+  })();
+  const nk = (async () => {
+    await new Promise(r => setTimeout(r, 150));
+    const r = routeFor("nika");
+    const pending = backlog.nika + 1;
+    if (r === "direct") {
+      await hop("B", "P", NIKA_C); log(`NIKA: UPLINK_DATA → ATLAS stored it under sg-roof${pending > 1 ? ` (+${pending - 1} queued, oldest first)` : ""}`, "ok");
+      await hop("P", "B", ACK_C); log("NIKA: UPLINK_ACK ok → row marked sent", "ok"); backlog.nika = 0;
+    } else if (r === "relay") {
+      await hop("B", "A", NIKA_C); log("NIKA: RELAY_DATA ch=nika → sg-ground", "");
+      await hop("A", "P", NIKA_C);
+      if (!S.allow) {
+        log("NIKA: UPLINK_ROUTE origin=sg-roof → ATLAS on_route says no", "bad");
+        await hop("P", "A", BAD_C); await hop("A", "B", BAD_C);
+        backlog.nika = pending; log("NIKA: sg-ground answers RELAY_ACL_DENIED → the row stays in nika_outbox (retry in 15 s)", "warn");
+      } else {
+        log(`NIKA: UPLINK_ROUTE + UPLINK_DATA origin=sg-roof → stored under sg-roof${pending > 1 ? ` (+${pending - 1} queued)` : ""}`, "ok");
+        await hop("P", "A", ACK_C); await hop("A", "B", ACK_C); backlog.nika = 0;
+        log("NIKA: UPLINK_ACK → RELAY_DATA_ACK → row marked sent ✓", "ok");
+      }
+    } else { backlog.nika = pending; log("NIKA: no link and no relay → kept in nika_outbox (retried later)", "warn"); }
+  })();
+  await Promise.all([mq, nk]);
+  if (backlog.mqtt && routeFor("mqtt") !== "none") backlog.mqtt = 0;
+  busy = false; drawTopo();
+}
+async function sendWrite() {
+  busy = true;
+  log("— ATLAS: Write SET 22.5 to AHU-01 setpoint (writebackId w-1)", "info");
+  const r = routeFor("nika");
+  if (r === "direct") {
+    await hop("P", "B", NIKA_C); log("UPLINK_CMD → sg-roof runs the BACnet write", "");
+    await hop("B", "P", ACK_C); log("UPLINK_CMD_ACK accepted, then …/ack/cmd SUCCESS → Written (over NIKA) ✓", "ok");
+  } else if (r === "relay" && S.allow) {
+    await hop("P", "A", NIKA_C); log("UPLINK_CMD target=sg-roof → sg-ground", "");
+    await hop("A", "B", NIKA_C); log("RELAY_DOWNLINK → sg-roof runs the write", "");
+    await hop("B", "A", ACK_C); await hop("A", "P", ACK_C);
+    log("ack relayed back → Written (over NIKA, relayed via sg-ground) ✓", "ok");
+  } else {
+    log("No session and no allowed relay for sg-roof → Not delivered (nothing sent)", "bad");
+  }
+  busy = false;
+}
+$("#sendReading").onclick = () => !busy && sendReading();
+$("#sendWrite").onclick = () => !busy && sendWrite();
+$("#preset").onclick = () => { if (busy) return; S.bN = false; sync(); log("sg-roof's NIKA link is cut. Its MQTT link still works.", "warn"); };
+$("#resetSim").onclick = () => { if (busy) return; Object.keys(S).forEach(k => S[k] = true); backlog = { nika: 0, mqtt: 0 }; $("#simLog").innerHTML = ""; sync(); log("All links up. Try: cut sg-roof's NIKA link, then send a reading.", "info"); };
+$("#resetSim").click();
+
+/* ---------------------------------------------------------------- security: brute force */
+(() => {
+  const rate = $("#bfRate"), machines = $("#bfMachines"), out = $("#bfOut");
+  const upd = () => {
+    const perSec = Number(rate.value) * Number(machines.value);
+    const log10Years = 128 * Math.log10(2) - Math.log10(perSec) - Math.log10(3.156e7) - Math.log10(2); // on average half the space
+    const universe = log10Years - Math.log10(1.38e10);
+    const sup = n => String(Math.round(n)).split("").map(d => "⁰¹²³⁴⁵⁶⁷⁸⁹"[d] ?? "⁻").join("");
+    out.innerHTML = `On average: <b>≈ 10${sup(log10Years)} years</b>. That's about <b>10${sup(universe)}×</b> the age of the universe (13.8 billion years). Brute force is not a realistic attack: the realistic risk is <b>stolen keys</b>, so protect the key files.`;
+  };
+  rate.onchange = machines.onchange = upd; upd();
+})();
+
+/* ---------------------------------------------------------------- security: key schedule stepper */
+(() => {
+  const K = [
+    ["both", "h = SHA256(PROTOCOL_NAME); ck = h", "Both sides start from the protocol name, so a peer speaking anything else derives different keys.", "name", "—", "none"],
+    ["both", "h = SHA256(h ‖ S_pub)", "The server's static key (pinned on the client) goes in first: the handshake is bound to that one server.", "name, S", "ck₀", "none"],
+    ["client", "h = SHA256(h ‖ e_pub)", "The client's fresh ephemeral key, sent in clear.", "name, S, e", "ck₀", "none"],
+    ["client", "ck, k = HKDF(ck, DH(e, S))   # es", "The first secret. Only the holder of S's private key can compute it.", "name, S, e", "ck₁", "k₁ (from es)"],
+    ["client", "enc_s = AEAD(k, 0, ad=h, C_pub)", "The client's static key, encrypted: observers never see which gateway this is. The ciphertext is mixed into h.", "…, enc_s", "ck₁", "k₁"],
+    ["client", "ck, k = HKDF(ck, DH(C, S))   # ss", "Static-static: proves the client owns C. The server now knows exactly who is connecting.", "…, enc_s", "ck₂", "k₂ (from es+ss)"],
+    ["client", "enc_payload = AEAD(k, 0, ad=h, ts ‖ data)", "The timestamp (±120 s) stops old handshakes; the server also remembers e_pub to block replays. → send message 1", "…, enc_payload", "ck₂", "k₂"],
+    ["server", "decrypt C_pub; check ts; authorize(C_pub)", "The server repeats the same steps. Any changed byte makes a tag fail, and then it says nothing. Unknown key → E frame.", "same as client", "ck₂", "k₂"],
+    ["server", "h = SHA256(h ‖ f_pub)", "The server's fresh ephemeral key.", "…, f", "ck₂", "k₂"],
+    ["server", "ck, k = HKDF(ck, DH(f, e))   # ee", "Ephemeral-ephemeral: forward secrecy. Stealing the static keys later doesn't reveal this session.", "…, f", "ck₃", "k₃"],
+    ["server", "ck, k = HKDF(ck, DH(f, C))   # se", "Proves to the client that it's talking to the real server (together with es).", "…, f", "ck₄", "k₄"],
+    ["server", "enc_payload = AEAD(k, 0, ad=h, {server: fp}) → message 2", "The client runs the same steps; if its tag verifies, both sides hold identical state.", "…, enc_payload", "ck₄", "k₄"],
+    ["both", "k_c2s, k_s2c = HKDF(ck, \"\")   # split", "Two transport keys, one per direction. Frames start at epoch 0, counter 0.", "final h (session id)", "ck₄", "k_c2s, k_s2c"],
+  ];
+  let at = 0;
+  const steps = $("#ksSteps");
+  steps.innerHTML = K.map((s, i) => `<li data-i="${i}"><span class="who">${s[0]}</span>${esc(s[1])}</li>`).join("");
+  const render = () => {
+    $$("li", steps).forEach((li, i) => li.className = i < at ? "past" : i === at ? "now" : "");
+    const s = K[at];
+    $("#ksState").innerHTML = `<p style="margin:0 0 8px">${s[2]}</p>
+      <div class="row"><b>transcript h</b><span>${esc(s[3])}</span></div>
+      <div class="row"><b>chaining key</b><span>${s[4]}</span></div>
+      <div class="row"><b>cipher key</b><span>${s[5]}</span></div>`;
+    $("#ksPos").textContent = `Step ${at + 1} of ${K.length}`;
+    $("#ksPrev").disabled = at === 0; $("#ksNext").disabled = at === K.length - 1;
+  };
+  $$("li", steps).forEach(li => li.onclick = () => { at = +li.dataset.i; render(); });
+  $("#ksPrev").onclick = () => { if (at > 0) { at--; render(); } };
+  $("#ksNext").onclick = () => { if (at < K.length - 1) { at++; render(); } };
+  $("#ksBox").addEventListener("keydown", e => { if (e.key === "ArrowRight") $("#ksNext").click(); if (e.key === "ArrowLeft") $("#ksPrev").click(); });
+  render();
+})();
+
+/* ---------------------------------------------------------------- security: frame tamper demo */
+(() => {
+  const F = [
+    ["ver", "hdr", "version", "1 byte", "<code>1</code>. Any other value → rejected as a bad frame before decryption.", "Version byte changed → <b>rejected</b> (bad frame). Nothing is decrypted."],
+    ["ep", "hdr", "epoch", "1 byte", "The rekey generation (0–255). The receiver accepts its current epoch or the next one only.", "Epoch changed → <b>rejected</b>: either an impossible epoch, or the key for that epoch doesn't match and the tag fails."],
+    ["kind", "hdr", "kind", "2 bytes", "Application-defined (the uplink uses 0). Covered by the tag because the header is the AEAD's associated data.", "Kind changed → the 16-byte <b>tag fails</b> (the header is authenticated). Frame dropped; session state unchanged."],
+    ["ctr", "hdr", "counter", "8 bytes", "Per direction, per epoch. It's also the nonce: <code>00000000 ‖ counter(LE)</code>, so a nonce is never reused under one key.", "Counter raised → the nonce differs, so the <b>tag fails</b>. Counter lowered → <b>rejected as a replay</b> before decryption."],
+    ["ct", "ct", "ciphertext", "n bytes", "ChaCha20-encrypted JSON message (e.g. <code>UPLINK_DATA</code>).", "One bit flipped → Poly1305 <b>tag fails</b> (forgery chance ≈ 2⁻¹⁰⁶). Frame dropped."],
+    ["tag", "tag", "tag", "16 bytes", "The Poly1305 authentication tag over the ciphertext and the header.", "Tag altered → <b>authentication fails</b>. Frame dropped."],
+  ];
+  const box = $("#frame"); let sel = 4;
+  box.innerHTML = F.map((f, i) => `<button class="fcell ${f[1]}" data-i="${i}" aria-pressed="false">${f[2]}<small>${f[3]}</small></button>`).join("");
+  const cells = $$(".fcell", box);
+  const pick = i => { sel = i; cells.forEach((c, j) => { c.setAttribute("aria-pressed", String(i === j)); c.classList.remove("hit", "good"); }); $("#frameExplain").innerHTML = `<h4>${F[i][2]} <span class="muted" style="font-weight:400;font-size:13px">${F[i][3]}${i < 4 ? " · part of the 12-byte header" : ""}</span></h4><p style="margin:.2em 0">${F[i][4]}</p>`; };
+  cells.forEach((c, i) => c.onclick = () => pick(i));
+  $("#tamperBtn").onclick = () => { cells.forEach(c => c.classList.remove("hit", "good")); cells[sel].classList.add("hit"); $("#frameExplain").innerHTML = `<h4 style="color:var(--bad)">Tampered: ${F[sel][2]}</h4><p style="margin:.2em 0">${F[sel][5]}</p>`; };
+  $("#replayBtn").onclick = () => { cells.forEach(c => c.classList.remove("hit", "good")); cells[3].classList.add("hit"); $("#frameExplain").innerHTML = `<h4 style="color:var(--bad)">Replayed frame (counter 41, next expected 42)</h4><p style="margin:.2em 0">Rejected as <b>replayed or reordered</b> before decryption. Even a perfect copy of a real frame is useless to an attacker.</p>`; };
+  $("#validBtn").onclick = () => { cells.forEach(c => { c.classList.remove("hit"); c.classList.add("good"); }); $("#frameExplain").innerHTML = `<h4 style="color:var(--ok)">Valid frame</h4><p style="margin:.2em 0">Version and epoch OK, counter ≥ next expected, tag verifies → decrypted. <b>Only now</b> does the receiver advance its counter, so garbage can never desynchronise the session.</p>`; };
+  pick(4);
+})();
+
+/* ---------------------------------------------------------------- security: threat explorer */
+(() => {
+  const T = [
+    ["🌐 Internet eavesdropper", ["See that TCP traffic goes to port 47900, and its timing and volume"], ["Read data or commands", "Learn which gateway it is (the identity is encrypted)", "Replay or alter anything"]],
+    ["🕵️ Man-in-the-middle", ["Drop or delay traffic (the gateway queues it and retries, or relays over the mesh)"], ["Impersonate ATLAS (the key is pinned)", "Impersonate a gateway", "Inject or modify messages", "Downgrade the protocol"]],
+    ["🔑 Stranger with own key pair", ["Send a message 1 and be told UPLINK_NOT_AUTHORISED", "Make the server do two X25519 operations per attempt (firewall 47900)"], ["Send data", "Receive commands", "Derive session keys at all, when a pre-shared key is on"]],
+    ["💾 Stole one gateway's identity.key", ["Act as that gateway until its key is replaced in ATLAS (with a pre-shared key on: only if they also have the psk)"], ["Act as any other gateway", "Decrypt past sessions (forward secrecy)", "Replace the live session without completing the handshake"]],
+    ["🏢 Stole the platform key + SECRET_KEY", ["Impersonate the platform to gateways that pin it, until it's rotated"], ["Decrypt past sessions"]],
+    ["🔌 On the LAN, no mesh key", ["Read mesh traffic: it's authenticated, not encrypted"], ["Inject, alter or replay mesh frames", "Join the mesh", "Touch the NSC uplink"]],
+    ["🗝️ On the LAN, with the mesh key", ["Read mesh traffic", "Offer to relay, then drop data", "Open a relay session under its own (or no) identity"], ["Break NSC or read the uplink", "Be carried or commanded as another gateway (relays trust only a key the origin proved)", "Get relayed through a gateway ATLAS hasn't allowed to relay"]],
+    ["🛰️ Compromised relay gateway", ["Read or drop the traffic it relays"], ["Forge data, once origin signatures are verified (not enabled today)", "Read other gateways' direct uplinks"]],
+  ];
+  $("#threatBar").innerHTML = T.map((t, i) => `<button class="badge grey" data-i="${i}" aria-pressed="false">${t[0]}</button>`).join("");
+  const pick = i => {
+    $$("#threatBar .badge").forEach((b, j) => b.setAttribute("aria-pressed", String(i === j)));
+    const [n, can, cannot] = T[i];
+    $("#threatOut").innerHTML = `<div class="can"><h4>⚠️ Can</h4><ul>${can.map(x => `<li>${x}</li>`).join("")}</ul></div><div class="cannot"><h4>🛡️ Cannot</h4><ul>${cannot.map(x => `<li>${x}</li>`).join("")}</ul></div>`;
+  };
+  $$("#threatBar .badge").forEach(b => b.onclick = () => pick(+b.dataset.i));
+  pick(0);
+})();
+
+/* ---------------------------------------------------------------- security: gaps + checklist */
+(() => {
+  const G = [
+    ["The mesh is authenticated but not encrypted.", "Relayed readings and commands can be read on the LAN segment. <i>Today:</i> keep the mesh on a trusted VLAN. <i>Fix:</i> end-to-end NSC through the relay."],
+    ["One shared mesh key per site.", "Anyone who has it is a full member. Rotating it means updating every gateway. There's no per-node revocation except <code>allowed_peers</code>."],
+    ["Handshake cost.", "Every message 1 costs the server two X25519 operations before it can reject it, and there's no per-IP rate limit. <i>Today:</i> firewall 47900 to the gateways' networks."],
+    ["No socket-level size cap on the mesh.", "The uplink caps messages at 1 MiB. On the mesh, only holders of the key can send frames that get processed."],
+    ["Clock dependence.", "Handshakes and mesh frames need clocks within ±120 s. Run NTP everywhere."],
+    ["The core models are plaintext with demo API keys.", "<code>api/server.py</code> (REQ/RES, PUB/SUB, STREAMS) uses keys hard-coded in <code>api/auth.py</code>. Keep it to localhost or a private network, and replace the keys before real use."],
+    ["The fingerprint is short (32 bits).", "It's fine for a human sanity check. The software always compares the full 256-bit key."],
+  ];
+  $("#gapList").innerHTML = G.map((g, i) => `<div class="gap"><div class="n">${i + 1}</div><div><b>${g[0]}</b> ${g[1]}</div></div>`).join("");
+  const F = [
+    ["Mesh origins were self-declared.", "A device with the site mesh key could claim another gateway's NIKA key in its session meta and be carried (and commanded) as it. Now the origin must <b>prove</b> its key: the relay sends a fresh nonce and ephemeral key, the origin answers with a MAC only the key's owner can compute, and Stargate uses only the proven key (<code>session_identity()</code>) for the NIKA channel and targeted commands."],
+    ["No secret beyond the key pairs.", "NSC now has an optional deployment <b>pre-shared key</b> (IKpsk2): without it, nobody can finish a handshake, not even with a stolen gateway key."],
+  ];
+  $("#gapClosed").innerHTML = F.map(g => `<div class="gap closed"><div class="n">✓</div><div><b>${g[0]}</b> ${g[1]}</div></div>`).join("");
+  const C = [
+    "Keep <code>identity.key</code> (gateways), ATLAS's <code>SECRET_KEY</code> and database backups private. Never paste them into tickets or chat.",
+    "Compare fingerprints when pairing. If a gateway suddenly needs re-pairing, find out why before accepting a new key.",
+    "Firewall ATLAS's 47900/TCP to the networks your gateways connect from.",
+    "Use a long random mesh key (32+ characters) and keep the mesh on a trusted VLAN.",
+    "For an extra secret on the uplink, set the same pre-shared key on the platform and every gateway (<code>generate_psk()</code>) and store it like a password.",
+    "Once every gateway on a site runs a build with identity proofs, consider <code>require_identity=True</code> on relays.",
+    "Turn on “May relay” only for gateways that should carry others.",
+    "Disable or remove a lost or decommissioned gateway in ATLAS right away (this cuts its session).",
+    "Run NTP on every gateway and on the platform.",
+    "Don't expose the core NIKA server (api/server.py) outside a private network.",
+  ];
+  const done = new Set(store.get("seccheck", []));
+  $("#secCheck").innerHTML = C.map((t, i) => `<label class="check" style="display:flex;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--border)"><input type="checkbox" data-i="${i}" ${done.has(i) ? "checked" : ""} style="margin-top:4px"> <span>${t}</span></label>`).join("");
+  $$("#secCheck input").forEach(c => c.onchange = () => { c.checked ? done.add(+c.dataset.i) : done.delete(+c.dataset.i); store.set("seccheck", [...done]); });
+})();
+
+/* ---------------------------------------------------------------- reference: API tables */
+(() => {
+  const A = [
+    ["api.secure", [
+      ["StaticKey.generate()", "→ StaticKey", "New random X25519 identity"],
+      ["StaticKey.load_or_create(path)", "→ StaticKey", "Creates the key file (mode 0600) if missing"],
+      ["StaticKey.load(path) / .save(path)", "", "NIKA-NSC-KEY v1 text format"],
+      ["StaticKey.from_private_b64(text) / .private_b64()", "", "For apps that store the key elsewhere (ATLAS: encrypted in the DB)"],
+      [".public / .public_b64 / .fingerprint", "bytes / str / str", "32 bytes / 43 chars / 8 hex"],
+      ["parse_public_key(text)", "→ bytes", "ValueError on the wrong format or length"],
+      ["encode_public_key(raw)", "→ str", "32 bytes → the 43-char text form"],
+      ["generate_psk() / parse_psk(text_or_bytes)", "→ str / bytes", "Deployment pre-shared key; wrong length or all-zero → ValueError"],
+      ["fingerprint(public)", "→ str", "sha256(public).hexdigest()[:8]"],
+      ["ClientHandshake(static, server_public, payload=b\"\", *, psk=None)", ".write_message1() / .read_message2(m2) → (Session, payload)", "The client side"],
+      ["ServerHandshake(static, max_skew=120, *, psk=None)", ".read_message1(m1) → client key; .write_message2(payload) → (m2, Session)", "Authorise between the two calls; .client_ephemeral for replay checks"],
+      ["Session.encrypt(plaintext, kind=0)", "→ frame", "Rekeys automatically"],
+      ["Session.decrypt(frame)", "→ (kind, plaintext)", "NSCError on anything wrong; state changes only after the tag verifies"],
+      ["Session.peer_public / .peer_fingerprint / .handshake_hash", "", ""],
+      ["NSCError", "exception", "Deliberately unspecific"],
+    ]],
+    ["api.uplink: NikaUplinkServer", [
+      ["NikaUplinkServer(key, *, bind, authorize, on_data, on_route=None, on_session=None, on_command_ack=None, session_timeout=30, max_skew=120, psk=None)", "", "authorize: async(bytes) → peer_id|None · on_data: async(DataMessage) → None|True|False|\"REASON\""],
+      ["await start() / await stop()", "", "stop sends BYE to every session"],
+      ["endpoint", "str", "The bound endpoint (useful with port 0)"],
+      ["sessions()", "list[dict]", "peer_id, fingerprint, connected_at, idle_s, meta, relaying_for, msgs_in, msgs_rejected"],
+      ["route_of(peer_id)", "\"direct\" | relay id | None", ""],
+      ["await send_command(peer_id, topic, payload, *, command_id=None, expires_at=None)", "→ route | None", "The outcome comes via on_command_ack"],
+      ["await disconnect(peer_id, reason)", "→ bool", "The peer may reconnect and is authorised again"],
+      ["on_data result", "", "None/True → ack ok · False or exception → UPLINK_STORE_FAILED · str → rejected with that reason"],
+    ]],
+    ["api.uplink: NikaUplinkClient", [
+      ["NikaUplinkClient(key, server_public, *, endpoint, meta=None, on_command=None, on_state=None, command_guard=None, heartbeat=5, timeout=15, handshake_timeout=5, ack_timeout=15, max_backoff=30, psk=None)", "", "on_command: async(Command) → status"],
+      ["await start() / await stop() / await wait_connected(timeout)", "", "Reconnects with exponential backoff"],
+      ["connected, state, last_error, connected_since, peer_id, server_fingerprint, metrics", "", "state: disconnected | connecting | connected | refused"],
+      ["set_meta(meta)", "", "Sent in HELLO on the next (re)connect"],
+      ["await publish(topic, payload, *, msg_id=None, origin=None, qos=1, timeout=None)", "→ msg_id", "Returns when stored; UplinkError(reason) / UplinkUnavailable"],
+      ["await announce_route(origin, active, *, timeout=None)", "→ bool", "Shared per origin; replayed on reconnect"],
+      ["DataMessage", "peer_id, origin, msg_id, topic, payload, qos, meta, .relayed", "What on_data receives"],
+      ["Command", "command_id, topic, payload, expires_at, target", "target = None → for this peer"],
+    ]],
+    ["api.mesh: MeshNode", [
+      ["MeshNode(config, *, signer=None, identity=None)", "", "Own thread; callbacks run on it (use call_soon_threadsafe in asyncio)"],
+      ["start() / stop(timeout=2)", "", ""],
+      ["set_uplink(up, channel=\"default\") / uplinks()", "", "Per-channel own-uplink state, advertised in beacons"],
+      ["state / relay_id / peers() / sessions()", "", "state: direct | seeking | relayed"],
+      ["send(topic, payload, *, qos=1, priority=5, msg_id=None, channel=\"default\")", "→ msg_id", "Origin; NoRelayAvailable unless relayed; priority 0 skips the rate limit"],
+      ["set_session_meta(meta)", "", "Origin; sent with every RELAY_OPEN (self-declared)"],
+      ["set_identity(static_key)", "", "Origin; a StaticKey (or None) proven to relays on each RELAY_OPEN"],
+      ["on_delivery(fn(msg_id, ok, reason)) / on_state(fn(old, new, relay)) / on_command(fn(Command))", "", "Origin callbacks"],
+      ["on_uplink_publish(fn(UplinkRequest))", "req.ack() / req.fail(reason)", "Relay; req has origin, msg_id, seq, topic, payload, qos, priority, ts, signature, channel"],
+      ["on_session(fn(origin, active)) / session_meta(origin)", "", "Relay"],
+      ["session_identity(origin)", "→ bytes | None", "Relay; the key the origin PROVED (readable inside on_session)"],
+      ["forward_command(origin, topic, payload, *, command_id, expires_at=None)", "→ bool", "Relay"],
+      ["on_command_result(fn(origin, command_id, status))", "", "Relay"],
+      ["revoke(origin, reason)", "", "Relay ends a session; the origin fails over and cools down"],
+      ["commands", "CommandGuard", "Share it with the uplink client"],
+    ]],
+    ["api.mesh: MeshConfig", [
+      ["node_id, mesh_key", "required", "mesh_key ≥ 16 bytes"],
+      ["bind_host, mesh_port, advertise_host", "0.0.0.0, 47801, None", "Relay socket"],
+      ["discovery_port, broadcast_addrs, static_peers, allowed_peers", "47800, [255.255.255.255], [], None", "Discovery"],
+      ["beacon_interval, peer_timeout", "1.0, 3.5", ""],
+      ["relay_enabled, relay_capacity, relay_rate_limit, session_timeout", "True, 4, 200, 10", "Relay side"],
+      ["keepalive_interval, relay_timeout, open_timeout, recover_hold, relay_cooldown, preferred_relays", "2, 6, 3, 5, 30, []", "Origin side"],
+      ["ack_timeout, max_attempts, max_inflight, queue_timeout", "3, 3, 256, 30", "Delivery"],
+      ["command_dedupe_ttl, downlink_retry, max_clock_skew", "3600, 1, 120", ""],
+      ["require_identity", "False", "Relay: refuse origins that don't prove an identity key"],
+    ]],
+    ["api.mesh: commands and signing", [
+      ["CommandGuard(ttl=3600).check(command_id, expires_at=None)", "→ accepted | duplicate | expired", "Thread-safe"],
+      ["OriginSigner(private_key_pem).sign(origin, msg_id, topic, payload, ts)", "→ base64", "Ed25519"],
+      ["verify_origin(public_key_pem, origin, msg_id, topic, payload, ts, signature)", "→ bool", "For the platform"],
+    ]],
+  ];
+  $("#apiTables").innerHTML = A.map(([g, rows]) => `<div class="api-group"><h3><code>${g}</code></h3><div class="table-wrap"><table><tr><th>Name</th><th>Returns / fields</th><th>Notes</th></tr>${rows.map(r => `<tr><td><code>${esc(r[0])}</code></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td></tr>`).join("")}</table></div></div>`).join("");
+  $("#apiFilter").addEventListener("input", e => {
+    const q = e.target.value.trim().toLowerCase();
+    $$(".api-group").forEach(g => {
+      let any = false;
+      $$("tr", g).forEach((tr, i) => { if (i === 0) return; const hit = !q || tr.textContent.toLowerCase().includes(q); tr.style.display = hit ? "" : "none"; any ||= hit; });
+      g.style.display = any ? "" : "none";
+    });
+  });
+})();
+
+/* ---------------------------------------------------------------- global search */
+const sections = $$("[data-section]");
+let searchT;
+$("#search").addEventListener("input", e => {
+  clearTimeout(searchT);
+  searchT = setTimeout(() => {
+    const q = e.target.value.trim().toLowerCase();
+    sections.forEach(s => s.classList.toggle("hidden-by-search", !!q && !s.textContent.toLowerCase().includes(q)));
+    $$("#side a").forEach(a => { const t = $(a.getAttribute("href")); a.style.opacity = t && t.classList.contains("hidden-by-search") ? .35 : 1; });
+  }, 120);
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "/" && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); $("#search").focus(); }
+});
+})();
+</script>
+</body>
+</html>

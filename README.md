@@ -7,11 +7,15 @@
 NIKA is a **live-first messaging protocol** designed for internal systems
 requiring low latency, high fan-out, and honest delivery guarantees.
 
+> **Using NIKA with Stargate and ATLAS (or another platform)?** Start with the guide:
+> [`docs/NIKA_GUIDE.md`](docs/NIKA_GUIDE.md), or the interactive version [`docs/nika_guide.html`](docs/nika_guide.html)
+> (with screenshots, a pairing wizard and flow simulators). It has a user part and a developer part.
+
 ---
 
 ## Core Models
 
-NIKA defines three independent interaction models.
+NIKA defines three independent interaction models, plus a gateway mesh and a platform uplink.
 
 ---
 
@@ -65,6 +69,37 @@ Properties:
 - Per-client flow control
 
 No replay or persistence is guaranteed.
+
+---
+
+## 4. MESH (Gateway Relay)
+
+Used for:
+- Keeping a gateway online when its own uplink fails
+- Relaying its data and cloud commands through a healthy LAN neighbour
+
+Properties:
+- Single-hop, automatic failover and recovery
+- At-least-once upstream with stable message ids
+- At-most-once, expiry-checked command execution
+- HMAC-authenticated frames, optional Ed25519 origin signatures
+
+See `MESH.md`.
+
+---
+
+## 5. UPLINK (Peer ⇄ Platform)
+
+Used for:
+- A gateway sending data to a platform, and receiving commands back
+- Relaying a neighbour's traffic (with the mesh) when its own uplink is down
+
+Properties:
+- Encrypted, mutually authenticated with the NIKA Secure Channel (NSC)
+- An ack means the platform stored it; explicit rejections, no silent drops
+- Commands de-duplicated and expiry-checked; routed via a relay when needed
+
+See `UPLINK.md` and `SECURE.md`.
 
 ---
 
