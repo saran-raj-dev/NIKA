@@ -11,7 +11,7 @@ requiring low latency, high fan-out, and honest delivery guarantees.
 
 ## Core Models
 
-NIKA defines three independent interaction models.
+NIKA defines three independent interaction models, plus a gateway mesh.
 
 ---
 
@@ -65,6 +65,22 @@ Properties:
 - Per-client flow control
 
 No replay or persistence is guaranteed.
+
+---
+
+## 4. MESH (Gateway Relay)
+
+Used for:
+- Keeping a gateway online when its own uplink fails
+- Relaying its data and cloud commands through a healthy LAN neighbour
+
+Properties:
+- Single-hop, automatic failover and recovery
+- At-least-once upstream with stable message ids
+- At-most-once, expiry-checked command execution
+- HMAC-authenticated frames, optional Ed25519 origin signatures
+
+See `MESH.md`.
 
 ---
 
