@@ -491,3 +491,29 @@ def test_signature_travels_through_relay(mesh):
     assert wait_for(lambda: len(seen) == 1)
     r = seen[0]
     assert verify_origin(pub, r.origin, r.msg_id, r.topic, r.payload, r.ts, r.signature)
+
+
+def test_command_guard_forgets_after_ttl():
+    g = CommandGuard(ttl=0.2)
+    assert g.check("x") == ACCEPT
+    assert g.check("x") == DUPLICATE
+    time.sleep(0.3)
+    assert g.check("x") == ACCEPT
+
+
+def test_session_meta_reaches_relay(mesh):
+    a, b = mesh.build("sg-A", "sg-B")
+    auto_relay(a)
+    seen = []
+    a.on_session(lambda origin, active: seen.append((active, a.session_meta(origin))))
+    b.set_session_meta({"topics": ["stargate/gateway/sg-B/cmd"]})
+    mesh.start(a, b)
+    assert wait_for(lambda: len(b.peers()) == 1)
+    go_relayed(b)
+    assert wait_for(lambda: seen == [(True, {"topics": ["stargate/gateway/sg-B/cmd"]})])
+
+    b.set_uplink(True)
+    # still readable inside the closing callback, gone afterwards
+    assert wait_for(lambda: len(seen) == 2)
+    assert seen[1] == (False, {"topics": ["stargate/gateway/sg-B/cmd"]})
+    assert a.session_meta("sg-B") == {}

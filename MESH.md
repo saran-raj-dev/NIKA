@@ -68,7 +68,7 @@ plus `t` (unix time) and `mac`.
 | Type | Direction | Payload |
 |---|---|---|
 | `MESH_BEACON` | UDP broadcast / unicast | `port, host, uplink, relay, load, capacity` |
-| `RELAY_OPEN` | origin → relay | — |
+| `RELAY_OPEN` | origin → relay | `meta` (app-defined dict, e.g. `{"topics": [...]}` to proxy) |
 | `RELAY_OPEN_ACK` | relay → origin | `accepted, reason?` |
 | `RELAY_PING` / `RELAY_PONG` | origin ↔ relay | `uplink` (on pong) |
 | `RELAY_DATA` | origin → relay | `msg_id, seq, topic, payload, qos, priority, ts, sig?` |
@@ -105,7 +105,7 @@ Origin app ◀─on_delivery(ok)── Origin node ◀──RELAY_DATA_ACK──
 | Upstream data | **At-least-once to the cloud**, with a stable `msg_id`. Duplicates are possible across failover and recovery, so consumers dedupe on `msg_id` |
 | Same relay, lost ACK | Not published twice (the relay remembers published `msg_id`s for 5 min) |
 | Delivery outcome | Every `send()` gets exactly one `on_delivery(msg_id, ok, reason)` |
-| Commands | **At-most-once execution** per `command_id` (shared `CommandGuard`). Never executed after `expires_at` |
+| Commands | **At-most-once execution** per `command_id` within `command_dedupe_ttl` (shared `CommandGuard`). Never executed after `expires_at` |
 | Ordering | Per-priority FIFO per origin. No ordering across failover |
 | Persistence | None. Messages that fail (`NO_RELAY`, `UNDELIVERED`, `UPLINK_RESTORED`, `STOPPED`) go back to the app, which keeps them in its outbox |
 
@@ -136,6 +136,7 @@ node = MeshNode(MeshConfig(node_id="sg-B", mesh_key=SITE_KEY))
 # ---- relay role ----
 node.on_uplink_publish(lambda req: publish_to_mqtt(req))   # then req.ack() / req.fail()
 node.on_session(lambda origin, active: proxy_subscribe(origin) if active else proxy_unsubscribe(origin))
+node.session_meta(origin)          # what the origin sent in RELAY_OPEN (readable inside on_session)
 node.on_command_result(lambda origin, cid, status: ...)
 # when a command arrives on a proxied topic:
 node.forward_command(origin, topic, payload, command_id=cid, expires_at=exp)
@@ -144,6 +145,7 @@ node.forward_command(origin, topic, payload, command_id=cid, expires_at=exp)
 node.on_command(lambda cmd: execute(cmd))                  # already deduped + expiry-checked
 node.on_delivery(lambda msg_id, ok, reason: mark_outbox(msg_id, ok))
 node.on_state(lambda old, new, relay: ...)
+node.set_session_meta({"topics": my_command_topics})      # sent with every RELAY_OPEN
 node.set_uplink(mqtt_connected)                           # call on every connect/disconnect
 node.send(topic, payload, priority=5, msg_id=outbox_row_id)  # only while state == RELAYED
 

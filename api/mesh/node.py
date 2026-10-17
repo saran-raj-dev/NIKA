@@ -168,6 +168,8 @@ class MeshNode:
         self._state = DIRECT
         self._relay_id: str | None = None
         self._uplink = True
+        self._meta: dict = {}                       # sent to relays in RELAY_OPEN
+        self._session_meta: dict[str, dict] = {}    # relay side: origin -> its meta
         self.metrics = {
             "beacons_sent": 0,
             "beacons_received": 0,
@@ -268,6 +270,16 @@ class MeshNode:
     def sessions(self) -> list[str]:
         with self._lock:
             return sorted(self._sessions)
+
+    def set_session_meta(self, meta: dict):
+        """Origin: details a relay needs to serve us (e.g. which command topics to
+        proxy). Sent with every RELAY_OPEN; set it before the uplink goes down."""
+        self._meta = dict(meta or {})
+
+    def session_meta(self, origin: str) -> dict:
+        """Relay: the meta an origin sent when it opened its session."""
+        with self._lock:
+            return dict(self._session_meta.get(origin) or {})
 
     def start(self):
         if self._running:
@@ -669,7 +681,7 @@ class MeshNode:
         self._poller.register(self._dealer, zmq.POLLIN)
 
         self._opening = (peer.node_id, now + self.cfg.open_timeout)
-        self._dealer_send(RELAY_OPEN, {})
+        self._dealer_send(RELAY_OPEN, {"meta": self._meta})
         log.info("%s: asking %s to relay", self.cfg.node_id, peer.node_id)
 
     def _abort_opening(self):
@@ -912,7 +924,8 @@ class MeshNode:
             p = frame.get("payload") or {}
 
             if t == RELAY_OPEN:
-                self._handle_open(origin)
+                meta = p.get("meta")
+                self._handle_open(origin, meta if isinstance(meta, dict) else {})
             elif t == RELAY_PING:
                 if self._touch(origin):
                     self._router_send(origin, RELAY_PONG, {"uplink": self._uplink})
@@ -926,7 +939,7 @@ class MeshNode:
             elif t == RELAY_DOWNLINK_ACK:
                 self._handle_downlink_ack(origin, p)
 
-    def _handle_open(self, origin: str):
+    def _handle_open(self, origin: str, meta: dict):
         reason = None
         if not self.cfg.relay_enabled:
             reason = ERR_RELAY_NOT_ALLOWED
@@ -943,6 +956,7 @@ class MeshNode:
         with self._lock:
             is_new = origin not in self._sessions
             self._sessions[origin] = _Session(origin, now, self.cfg.relay_rate_limit, now)
+            self._session_meta[origin] = meta
 
         self._router_send(origin, RELAY_OPEN_ACK, {"accepted": True})
         if is_new:
@@ -963,7 +977,9 @@ class MeshNode:
                 del self._downlinks[cid]
                 self._call(self._on_command_result, origin, cid, "no_session")
         if existed:
-            self._call(self._on_session, origin, False)
+            self._call(self._on_session, origin, False)  # meta still readable here
+        with self._lock:
+            self._session_meta.pop(origin, None)
 
     def _handle_data(self, origin: str, p: dict):
         msg_id = p.get("msg_id")

@@ -28,7 +28,8 @@ class CommandGuard:
         with self._lock:
             self._prune(now)
 
-            if command_id in self._seen:
+            seen_at = self._seen.get(command_id)
+            if seen_at is not None and now - seen_at <= self.ttl:
                 return DUPLICATE
 
             if expires_at is not None and now > expires_at:
