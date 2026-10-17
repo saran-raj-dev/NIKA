@@ -10,10 +10,11 @@ from .node import (
     SEEKING,
     RELAYED,
 )
+from .identity import PROOF_LABEL
 from .security import OriginSigner, verify_origin
 
 __all__ = [
     "MeshNode", "MeshConfig", "Command", "UplinkRequest", "NoRelayAvailable",
-    "CommandGuard", "OriginSigner", "verify_origin",
+    "CommandGuard", "OriginSigner", "verify_origin", "PROOF_LABEL",
     "DIRECT", "SEEKING", "RELAYED", "ACCEPT", "DUPLICATE", "EXPIRED",
 ]

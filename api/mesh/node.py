@@ -15,9 +15,11 @@ service) does that through the callbacks below. All sockets live on one
 background thread; callbacks run on that thread, so hand work off to your own
 event loop instead of blocking in them.
 """
+import base64
 import hashlib
 import heapq
 import itertools
+import json
 import logging
 import queue
 import socket
@@ -34,11 +36,16 @@ from ..envelope import envelope, NIKA_VERSION
 from ..protocol import *
 from .commands import CommandGuard, ACCEPT, DUPLICATE
 from .config import MeshConfig
+from .identity import Challenge, prove
 from .security import seal, unseal
 
 log = logging.getLogger("nika.mesh")
 
 # ---- Origin states ----
+# Uplink channels: a node may have several independent uplinks (e.g. two
+# platform protocols). Callers that don't name one use DEFAULT_CHANNEL.
+DEFAULT_CHANNEL = "default"
+
 DIRECT = "direct"     # own uplink is fine
 SEEKING = "seeking"   # uplink down, looking for a relay
 RELAYED = "relayed"   # uplink down, traffic going through a relay
@@ -55,6 +62,8 @@ UPLINK_REQUEST_TIMEOUT = 30.0
 DOWNLINK_DEFAULT_TTL = 30.0
 PUBLISHED_TTL = 300.0
 PUBLISHED_MAX = 50_000
+CHALLENGE_TTL = 10.0          # relay: an unanswered identity challenge is dropped after this
+MIN_CHALLENGES = 16           # relay: outstanding challenges allowed (or 4 x relay_capacity)
 
 
 class NoRelayAvailable(RuntimeError):
@@ -78,6 +87,7 @@ class UplinkRequest:
     priority: int
     ts: float
     signature: str | None
+    channel: str = DEFAULT_CHANNEL
     _node: "MeshNode" = field(repr=False, default=None)
 
     def ack(self):
@@ -108,6 +118,12 @@ class _Peer:
     load: int
     capacity: int
     last_seen: float
+    uplinks: dict = field(default_factory=dict)   # channel -> up
+
+    def channel_up(self, channel: str) -> bool:
+        if self.uplinks:
+            return bool(self.uplinks.get(channel))
+        return self.uplink and channel == DEFAULT_CHANNEL   # peer without channels
 
 
 @dataclass
@@ -128,10 +144,18 @@ class _Outgoing:
     priority: int
     ts: float
     signature: str | None
+    channel: str = DEFAULT_CHANNEL
     queued_at: float = 0.0
     attempts: int = 0
     not_before: float = 0.0
     sent_at: float = 0.0
+
+
+@dataclass
+class _Pending:
+    """Relay side: a RELAY_OPEN waiting for its identity proof."""
+    challenge: Challenge
+    deadline: float
 
 
 @dataclass
@@ -148,9 +172,13 @@ class _Downlink:
 # =================================================
 
 class MeshNode:
-    def __init__(self, config: MeshConfig, *, signer=None):
+    def __init__(self, config: MeshConfig, *, signer=None, identity=None):
+        """`identity`: optional long-term key (an `api.secure.StaticKey`). Origins
+        that have one prove it to relays; relays expose the verified key through
+        session_identity(origin)."""
         self.cfg = config
         self.signer = signer
+        self._identity = identity
         self.commands = CommandGuard(ttl=config.command_dedupe_ttl)
 
         # ---- Callbacks ----
@@ -167,9 +195,11 @@ class MeshNode:
         self._sessions: dict[str, _Session] = {}
         self._state = DIRECT
         self._relay_id: str | None = None
-        self._uplink = True
+        self._uplinks: dict[str, bool] = {DEFAULT_CHANNEL: True}
+        self._default_explicit = False
         self._meta: dict = {}                       # sent to relays in RELAY_OPEN
         self._session_meta: dict[str, dict] = {}    # relay side: origin -> its meta
+        self._session_identity: dict[str, bytes | None] = {}   # relay side: origin -> proven key
         self.metrics = {
             "beacons_sent": 0,
             "beacons_received": 0,
@@ -183,6 +213,8 @@ class MeshNode:
             "commands_forwarded": 0,
             "commands_received": 0,
             "failovers": 0,
+            "identity_proofs_ok": 0,
+            "identity_proofs_failed": 0,
         }
 
         # ---- Loop-thread-only state ----
@@ -195,6 +227,7 @@ class MeshNode:
         # origin side
         self._dealer: zmq.Socket | None = None
         self._opening: tuple[str, float] | None = None
+        self._opening_meta: dict = {}               # meta as sent in the current RELAY_OPEN
         self._last_pong = 0.0
         self._last_ping = 0.0
         self._recover_at: float | None = None
@@ -203,9 +236,10 @@ class MeshNode:
         self._inflight: dict[str, _Outgoing] = {}
 
         # relay side
-        self._pending_uplink: dict[tuple[str, str], float] = {}
+        self._pending_uplink: dict[tuple[str, str], tuple[float, str]] = {}   # -> (started, channel)
         self._published: OrderedDict[tuple[str, str], float] = OrderedDict()
         self._downlinks: dict[str, _Downlink] = {}
+        self._challenges: dict[str, _Pending] = {}
 
         self._last_beacon = 0.0
 
@@ -258,6 +292,7 @@ class MeshNode:
                     "node_id": p.node_id,
                     "endpoint": p.endpoint,
                     "uplink": p.uplink,
+                    "uplinks": dict(p.uplinks) if p.uplinks else {DEFAULT_CHANNEL: p.uplink},
                     "relay": p.relay,
                     "load": p.load,
                     "capacity": p.capacity,
@@ -277,9 +312,22 @@ class MeshNode:
         self._meta = dict(meta or {})
 
     def session_meta(self, origin: str) -> dict:
-        """Relay: the meta an origin sent when it opened its session."""
+        """Relay: the meta an origin sent when it opened its session. Self-declared:
+        don't treat anything in it as proof of who the origin is."""
         with self._lock:
             return dict(self._session_meta.get(origin) or {})
+
+    def set_identity(self, identity):
+        """Origin: the long-term key (an `api.secure.StaticKey`, or None) to prove to
+        relays. Used from the next RELAY_OPEN on."""
+        self._identity = identity
+
+    def session_identity(self, origin: str) -> bytes | None:
+        """Relay: the 32-byte public key the origin PROVED it holds when it opened its
+        session, or None if it didn't prove one. This, not anything in
+        session_meta(), is what may name the origin to a platform."""
+        with self._lock:
+            return self._session_identity.get(origin)
 
     def start(self):
         if self._running:
@@ -295,12 +343,17 @@ class MeshNode:
         self._post(("stop",))
         self._thread.join(timeout)
 
-    def set_uplink(self, up: bool):
-        """Tell the node whether this gateway can reach the cloud by itself."""
-        self._post(("uplink", bool(up)))
+    def set_uplink(self, up: bool, channel: str = DEFAULT_CHANNEL):
+        """Tell the node whether this gateway can reach the cloud by itself on
+        `channel`. A node with several channels seeks a relay while any of them
+        is down, and relays for others while any of them is up."""
+        self._post(("uplink", channel, bool(up)))
+
+    def uplinks(self) -> dict[str, bool]:
+        return dict(self._uplinks)
 
     def send(self, topic: str, payload: Any, *, qos: int = 1, priority: int = 5,
-             msg_id: str | None = None) -> str:
+             msg_id: str | None = None, channel: str = DEFAULT_CHANNEL) -> str:
         """
         Origin: queue a message for the relay. Lower priority number = sent first;
         priority 0 (alarms) also bypasses the relay's rate limit.
@@ -309,7 +362,7 @@ class MeshNode:
         if self._state != RELAYED:
             raise NoRelayAvailable(f"mesh state is {self._state}")
         msg_id = msg_id or f"{self.cfg.node_id}:{uuid.uuid4()}"
-        self._post(("send", msg_id, topic, payload, int(qos), int(priority)))
+        self._post(("send", msg_id, topic, payload, int(qos), int(priority), channel))
         return msg_id
 
     def forward_command(self, origin: str, topic: str, payload: Any, *, command_id: str,
@@ -426,7 +479,7 @@ class MeshNode:
             if kind == "stop":
                 self._running = False
             elif kind == "uplink":
-                self._handle_uplink_change(item[1])
+                self._handle_uplink_change(item[1], item[2])
             elif kind == "send":
                 self._enqueue(*item[1:])
             elif kind == "forward":
@@ -435,6 +488,7 @@ class MeshNode:
                 self._finish_uplink(*item[1:])
             elif kind == "revoke":
                 _, origin, reason = item
+                self._challenges.pop(origin, None)
                 if origin in self._sessions:
                     self._router_send(origin, RELAY_REVOKE, {"reason": reason})
                     self._end_session(origin)
@@ -501,7 +555,8 @@ class MeshNode:
         raw = self._seal(MESH_BEACON, {
             "port": self.cfg.mesh_port,
             "host": self.cfg.advertise_host,
-            "uplink": self._uplink,
+            "uplink": self._any_up(),
+            "uplinks": dict(self._uplinks),
             "relay": self.cfg.relay_enabled,
             "load": len(self._sessions),
             "capacity": self.cfg.relay_capacity,
@@ -537,6 +592,8 @@ class MeshNode:
                 node_id=sender,
                 endpoint=f"tcp://{p.get('host') or src_ip}:{int(p.get('port', 0))}",
                 uplink=bool(p.get("uplink")),
+                uplinks={str(k): bool(v) for k, v in (p.get("uplinks") or {}).items()}
+                if isinstance(p.get("uplinks"), dict) else {},
                 relay=bool(p.get("relay")),
                 load=int(p.get("load", 0)),
                 capacity=int(p.get("capacity", 0)),
@@ -578,6 +635,21 @@ class MeshNode:
     # ORIGIN SIDE
     # =================================================
 
+    def _all_up(self) -> bool:
+        """Origin view: can we reach the cloud on every channel ourselves?"""
+        return all(self._uplinks.values())
+
+    def _any_up(self) -> bool:
+        """Relay view: can we carry anything for others?"""
+        return any(self._uplinks.values())
+
+    def _needed(self) -> list[str]:
+        """Channels we currently need a relay for. While recovering (everything
+        back up, waiting out recover_hold) that's all our channels: the relay
+        keeps carrying until we close the session."""
+        down = [ch for ch, up in self._uplinks.items() if not up]
+        return down or list(self._uplinks) or [DEFAULT_CHANNEL]
+
     def _set_state(self, new: str, relay_id: str | None = None):
         old = self._state
         self._state = new
@@ -587,12 +659,20 @@ class MeshNode:
                      f" via {relay_id}" if relay_id else "")
             self._call(self._on_state, old, new, relay_id)
 
-    def _handle_uplink_change(self, up: bool):
-        if up == self._uplink:
-            return
-        self._uplink = up
+    def _handle_uplink_change(self, channel: str, up: bool):
+        # A node that names its own channels never meant the implicit default one.
+        if channel != DEFAULT_CHANNEL and not self._default_explicit:
+            self._uplinks.pop(DEFAULT_CHANNEL, None)
+        if channel == DEFAULT_CHANNEL:
+            self._default_explicit = True
 
-        if up:
+        was_all, was_any = self._all_up(), self._any_up()
+        if self._uplinks.get(channel) == up:
+            return
+        self._uplinks[channel] = up
+        now_all, now_any = self._all_up(), self._any_up()
+
+        if now_all and not was_all:
             if self._state == SEEKING:
                 self._abort_opening()
                 self._set_state(DIRECT)
@@ -601,11 +681,13 @@ class MeshNode:
                 # don't flap: wait for the uplink to prove itself
                 self._recover_at = time.monotonic() + self.cfg.recover_hold
             # stop carrying others? no — a healthy uplink is exactly what relays need
-        else:
+        elif not now_all:
             self._recover_at = None
             if self._state == DIRECT:
                 self._set_state(SEEKING)
-            # a relay without an uplink is useless to its origins
+
+        if was_any and not now_any:
+            # a relay with no uplink at all is useless to its origins
             for origin in list(self._sessions):
                 self._router_send(origin, RELAY_REVOKE, {"reason": ERR_RELAY_NO_UPLINK})
                 self._end_session(origin)
@@ -628,7 +710,7 @@ class MeshNode:
             return
 
         # recovered?
-        if self._recover_at and now >= self._recover_at and self._uplink:
+        if self._recover_at and now >= self._recover_at and self._all_up():
             self._dealer_send(RELAY_CLOSE, {})
             self._close_dealer()
             self._recover_at = None
@@ -643,7 +725,7 @@ class MeshNode:
             reason = "keepalive timeout"
         elif peer is None:
             reason = "beacons stopped"
-        elif not peer.uplink:
+        elif not any(peer.channel_up(ch) for ch in self._needed()):
             reason = "relay lost its uplink"
         if reason:
             self._failover(reason, cooldown=True)
@@ -659,13 +741,17 @@ class MeshNode:
         with self._lock:
             peers = list(self._peers.values())
 
+        needed = self._needed()
         candidates = [
             p for p in peers
             if now - p.last_seen <= self.cfg.peer_timeout
-            and p.uplink and p.relay and p.load < p.capacity
+            and p.relay and p.load < p.capacity
+            and any(p.channel_up(ch) for ch in needed)
         ]
         if not candidates:
             return None
+        full = [p for p in candidates if all(p.channel_up(ch) for ch in needed)]
+        candidates = full or candidates
 
         # A relay that failed or refused us waits out relay_cooldown. Retrying it
         # early would hot-loop against one that keeps revoking (e.g. its broker
@@ -701,7 +787,12 @@ class MeshNode:
         self._poller.register(self._dealer, zmq.POLLIN)
 
         self._opening = (peer.node_id, now + self.cfg.open_timeout)
-        self._dealer_send(RELAY_OPEN, {"meta": self._meta})
+        # the relay sees the meta after a JSON round trip; prove over that same form
+        self._opening_meta = json.loads(json.dumps(self._meta))
+        payload = {"meta": self._opening_meta}
+        if self._identity is not None:
+            payload["id"] = self._identity.public_b64       # proved on RELAY_CHALLENGE
+        self._dealer_send(RELAY_OPEN, payload)
         log.info("%s: asking %s to relay", self.cfg.node_id, peer.node_id)
 
     def _abort_opening(self):
@@ -730,7 +821,7 @@ class MeshNode:
             heapq.heappush(self._outq, (item.priority, item.seq, item))
         self._inflight.clear()
 
-        if self._uplink:
+        if self._all_up():
             self._set_state(DIRECT)
             self._fail_all(UPLINK_RESTORED)
         else:
@@ -757,6 +848,8 @@ class MeshNode:
 
             if t == RELAY_OPEN_ACK:
                 self._handle_open_ack(p)
+            elif t == RELAY_CHALLENGE:
+                self._handle_challenge(p)
             elif t == RELAY_PONG:
                 self._last_pong = time.monotonic()
             elif t == RELAY_DATA_ACK:
@@ -769,6 +862,14 @@ class MeshNode:
                     # asking it again straight away
                     self._failover(f"revoked: {p.get('reason')}",
                                    cooldown=p.get("reason") != ERR_RELAY_NO_SESSION)
+
+    def _handle_challenge(self, p: dict):
+        if not self._opening or self._state != SEEKING or self._identity is None:
+            return
+        mac = prove(self._identity, relay_id=self._opening[0], origin_id=self.cfg.node_id,
+                    challenge=p, meta=self._opening_meta)
+        if mac is not None:
+            self._dealer_send(RELAY_PROVE, {"mac": mac})
 
     def _handle_open_ack(self, p: dict):
         if not self._opening or self._state != SEEKING:
@@ -791,8 +892,8 @@ class MeshNode:
 
     # ---- outgoing data ----
 
-    def _enqueue(self, msg_id, topic, payload, qos, priority):
-        if self._state != RELAYED and self._uplink:
+    def _enqueue(self, msg_id, topic, payload, qos, priority, channel=DEFAULT_CHANNEL):
+        if self._state != RELAYED and self._all_up():
             self._deliver(msg_id, False, NO_RELAY)
             return
         if len(self._outq) + len(self._inflight) >= MAX_QUEUE:
@@ -805,7 +906,7 @@ class MeshNode:
         if self.signer is not None:
             sig = self.signer.sign(self.cfg.node_id, msg_id, topic, payload, ts)
 
-        item = _Outgoing(msg_id, seq, topic, payload, qos, priority, ts, sig,
+        item = _Outgoing(msg_id, seq, topic, payload, qos, priority, ts, sig, channel,
                          queued_at=time.monotonic())
         heapq.heappush(self._outq, (priority, seq, item))
         if self._state == RELAYED:
@@ -837,6 +938,7 @@ class MeshNode:
                 "payload": item.payload,
                 "qos": item.qos,
                 "priority": item.priority,
+                "ch": item.channel,
                 "ts": item.ts,
                 "sig": item.signature,
             })
@@ -860,6 +962,9 @@ class MeshNode:
             item.attempts -= 1  # not the message's fault
             item.not_before = time.monotonic() + 0.5
             heapq.heappush(self._outq, (item.priority, item.seq, item))
+        elif reason == ERR_RELAY_NO_UPLINK and p.get("ch") and self._relay_has_any_needed():
+            # the relay can't carry THIS channel right now; the rest still works
+            self._deliver(msg_id, False, ERR_RELAY_NO_UPLINK)
         elif reason in (ERR_RELAY_NO_SESSION, ERR_RELAY_NO_UPLINK):
             item.attempts -= 1
             heapq.heappush(self._outq, (item.priority, item.seq, item))
@@ -870,6 +975,10 @@ class MeshNode:
             self._deliver(msg_id, False, reason or UNDELIVERED)
         else:
             heapq.heappush(self._outq, (item.priority, item.seq, item))
+
+    def _relay_has_any_needed(self) -> bool:
+        peer = self._alive_peer(self._relay_id) if self._relay_id else None
+        return bool(peer) and any(peer.channel_up(ch) for ch in self._needed())
 
     def _expire_queued(self, now: float):
         """While no relay is available, don't hold messages longer than queue_timeout."""
@@ -945,10 +1054,12 @@ class MeshNode:
 
             if t == RELAY_OPEN:
                 meta = p.get("meta")
-                self._handle_open(origin, meta if isinstance(meta, dict) else {})
+                self._handle_open(origin, meta if isinstance(meta, dict) else {}, p.get("id"))
+            elif t == RELAY_PROVE:
+                self._handle_prove(origin, p.get("mac"))
             elif t == RELAY_PING:
                 if self._touch(origin):
-                    self._router_send(origin, RELAY_PONG, {"uplink": self._uplink})
+                    self._router_send(origin, RELAY_PONG, {"uplink": self._any_up()})
                 else:
                     self._router_send(origin, RELAY_REVOKE, {"reason": ERR_RELAY_NO_SESSION})
             elif t == RELAY_DATA:
@@ -959,28 +1070,77 @@ class MeshNode:
             elif t == RELAY_DOWNLINK_ACK:
                 self._handle_downlink_ack(origin, p)
 
-    def _handle_open(self, origin: str, meta: dict):
-        reason = None
+    def _open_refusal(self, origin: str) -> str | None:
         if not self.cfg.relay_enabled:
-            reason = ERR_RELAY_NOT_ALLOWED
-        elif not self._uplink:
-            reason = ERR_RELAY_NO_UPLINK
-        elif origin not in self._sessions and len(self._sessions) >= self.cfg.relay_capacity:
-            reason = ERR_RELAY_CAPACITY
+            return ERR_RELAY_NOT_ALLOWED
+        if not self._any_up():
+            return ERR_RELAY_NO_UPLINK
+        if origin not in self._sessions and len(self._sessions) >= self.cfg.relay_capacity:
+            return ERR_RELAY_CAPACITY
+        return None
 
+    def _refuse_open(self, origin: str, reason: str):
+        self._router_send(origin, RELAY_OPEN_ACK, {"accepted": False, "reason": reason})
+
+    def _handle_open(self, origin: str, meta: dict, claim=None):
+        self._challenges.pop(origin, None)          # a new RELAY_OPEN replaces an old attempt
+        reason = self._open_refusal(origin)
         if reason:
-            self._router_send(origin, RELAY_OPEN_ACK, {"accepted": False, "reason": reason})
+            return self._refuse_open(origin, reason)
+
+        if claim is None:
+            if self.cfg.require_identity:
+                return self._refuse_open(origin, ERR_RELAY_IDENTITY_REQUIRED)
+            return self._accept_session(origin, meta, None)
+
+        # the origin claims a long-term key: make it prove it before accepting
+        try:
+            if not isinstance(claim, str):
+                raise ValueError
+            identity = base64.urlsafe_b64decode(claim + "=" * (-len(claim) % 4))
+            challenge = Challenge(relay_id=self.cfg.node_id, origin_id=origin,
+                                  identity=identity, meta=meta)
+        except Exception:
+            self.metrics["identity_proofs_failed"] += 1
+            return self._refuse_open(origin, ERR_RELAY_IDENTITY)
+        if len(self._challenges) >= max(MIN_CHALLENGES, 4 * self.cfg.relay_capacity):
+            return self._refuse_open(origin, ERR_RELAY_CAPACITY)
+        self._challenges[origin] = _Pending(challenge, time.monotonic() + CHALLENGE_TTL)
+        self._router_send(origin, RELAY_CHALLENGE, challenge.payload())
+
+    def _handle_prove(self, origin: str, mac):
+        pending = self._challenges.pop(origin, None)
+        if pending is None or time.monotonic() > pending.deadline:
             return
+        challenge = pending.challenge
+        if not challenge.verify(mac):
+            self.metrics["identity_proofs_failed"] += 1
+            log.warning("%s: %s failed to prove its identity key", self.cfg.node_id, origin)
+            return self._refuse_open(origin, ERR_RELAY_IDENTITY)
+        self.metrics["identity_proofs_ok"] += 1
+        reason = self._open_refusal(origin)         # things may have changed meanwhile
+        if reason:
+            return self._refuse_open(origin, reason)
+        self._accept_session(origin, challenge.meta, challenge.identity)
+
+    def _accept_session(self, origin: str, meta: dict, identity: bytes | None):
+        # A session whose proven identity changes is a different session to the
+        # app (it may have mapped the old key to this origin): end it first.
+        if origin in self._sessions and self._session_identity.get(origin) != identity:
+            log.warning("%s: %s re-opened with a different identity", self.cfg.node_id, origin)
+            self._end_session(origin)
 
         now = time.monotonic()
         with self._lock:
             is_new = origin not in self._sessions
             self._sessions[origin] = _Session(origin, now, self.cfg.relay_rate_limit, now)
             self._session_meta[origin] = meta
+            self._session_identity[origin] = identity
 
         self._router_send(origin, RELAY_OPEN_ACK, {"accepted": True})
         if is_new:
-            log.info("%s: now relaying for %s", self.cfg.node_id, origin)
+            log.info("%s: now relaying for %s%s", self.cfg.node_id, origin,
+                     " (identity proven)" if identity else "")
             self._call(self._on_session, origin, True)
 
     def _touch(self, origin: str) -> bool:
@@ -997,22 +1157,25 @@ class MeshNode:
                 del self._downlinks[cid]
                 self._call(self._on_command_result, origin, cid, "no_session")
         if existed:
-            self._call(self._on_session, origin, False)  # meta still readable here
+            self._call(self._on_session, origin, False)  # meta + identity still readable here
         with self._lock:
             self._session_meta.pop(origin, None)
+            self._session_identity.pop(origin, None)
 
     def _handle_data(self, origin: str, p: dict):
         msg_id = p.get("msg_id")
         if not msg_id or not p.get("topic"):
             return
 
+        channel = str(p.get("ch") or DEFAULT_CHANNEL)
+
         def nack(reason):
             self._router_send(origin, RELAY_DATA_ACK,
-                              {"msg_id": msg_id, "ok": False, "reason": reason})
+                              {"msg_id": msg_id, "ok": False, "reason": reason, "ch": channel})
 
         if not self._touch(origin):
             return nack(ERR_RELAY_NO_SESSION)
-        if not self._uplink:
+        if not self._uplinks.get(channel):
             return nack(ERR_RELAY_NO_UPLINK)
 
         key = (origin, msg_id)
@@ -1031,7 +1194,7 @@ class MeshNode:
             return nack(ERR_RELAY_UPLINK_FAILED)
 
         self.metrics["relay_msgs_in"] += 1
-        self._pending_uplink[key] = time.monotonic()
+        self._pending_uplink[key] = (time.monotonic(), channel)
         self._call(self._on_uplink_publish, UplinkRequest(
             origin=origin,
             msg_id=msg_id,
@@ -1042,6 +1205,7 @@ class MeshNode:
             priority=priority,
             ts=float(p.get("ts", 0)),
             signature=p.get("sig"),
+            channel=channel,
             _node=self,
         ))
 
@@ -1057,8 +1221,10 @@ class MeshNode:
 
     def _finish_uplink(self, origin: str, msg_id: str, ok: bool, reason: str | None):
         key = (origin, msg_id)
-        if self._pending_uplink.pop(key, None) is None:
+        pending = self._pending_uplink.pop(key, None)
+        if pending is None:
             return
+        channel = pending[1]
 
         if ok:
             self.metrics["relay_msgs_published"] += 1
@@ -1068,8 +1234,9 @@ class MeshNode:
             self._router_send(origin, RELAY_DATA_ACK, {"msg_id": msg_id, "ok": True})
         else:
             self.metrics["relay_msgs_failed"] += 1
+            # carry the channel: "this channel failed", not "this relay is gone"
             self._router_send(origin, RELAY_DATA_ACK, {
-                "msg_id": msg_id, "ok": False, "reason": reason or ERR_RELAY_UPLINK_FAILED,
+                "msg_id": msg_id, "ok": False, "reason": reason or ERR_RELAY_UPLINK_FAILED, "ch": channel,
             })
 
     # ---- commands to origins ----
@@ -1114,12 +1281,16 @@ class MeshNode:
         self._call(self._on_command_result, origin, cid, status)
 
     def _tick_relay(self, now: float):
+        for origin, pending in list(self._challenges.items()):
+            if now > pending.deadline:
+                del self._challenges[origin]
+
         for origin, s in list(self._sessions.items()):
             if now - s.last_seen > self.cfg.session_timeout:
                 log.warning("%s: session with %s timed out", self.cfg.node_id, origin)
                 self._end_session(origin)
 
-        for key, started in list(self._pending_uplink.items()):
+        for key, (started, _ch) in list(self._pending_uplink.items()):
             if now - started > UPLINK_REQUEST_TIMEOUT:
                 del self._pending_uplink[key]  # the origin will retry
 

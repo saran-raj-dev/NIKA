@@ -21,6 +21,15 @@ listed in section 6.
 > If the whole site loses internet, no neighbour can relay: the application's
 > own outbox is the safety net.
 
+### Channels
+
+A node can have **several independent uplinks**, called channels, e.g. two platform protocols side by side. The application names them: `set_uplink(up, channel="nika")`, `send(..., channel="nika")`, and `UplinkRequest.channel` on the relay. Rules:
+
+- **Origin:** seeks a relay while **any** of its channels is down, and goes direct again only when **all** are up.
+- **Relay:** carries for others while **any** of its channels is up. It accepts a message only if **that message's** channel is up on its side (otherwise `RELAY_NO_UPLINK`, with `ch`, for that message only). A failure the relay **app** reports (`req.fail()`) also carries `ch`, so the origin gets that message back but keeps the relay.
+- **Relay choice:** prefers relays that have **every** channel the origin needs. Preferred relays are picked among those.
+- **Beacons:** carry `uplinks: {channel: up}`. Callers that never name a channel use the implicit `"default"` channel, so single-uplink apps work unchanged.
+
 ---
 
 ## 2. Roles
@@ -73,7 +82,9 @@ plus `t` (unix time) and `mac`.
 | Type | Direction | Payload |
 |---|---|---|
 | `MESH_BEACON` | UDP broadcast / unicast | `port, host, uplink, relay, load, capacity` |
-| `RELAY_OPEN` | origin → relay | `meta` (app-defined dict, e.g. `{"topics": [...]}` to proxy) |
+| `RELAY_OPEN` | origin → relay | `meta` (app-defined dict, e.g. `{"topics": [...]}` to proxy), `id?` (claimed identity key, base64url) |
+| `RELAY_CHALLENGE` | relay → origin | `n` (32-byte nonce), `e` (relay's fresh X25519 ephemeral), both base64url. Only when `RELAY_OPEN` had `id` |
+| `RELAY_PROVE` | origin → relay | `mac` (hex), see §7.1 |
 | `RELAY_OPEN_ACK` | relay → origin | `accepted, reason?` |
 | `RELAY_PING` / `RELAY_PONG` | origin ↔ relay | `uplink` (on pong) |
 | `RELAY_DATA` | origin → relay | `msg_id, seq, topic, payload, qos, priority, ts, sig?` |
@@ -86,7 +97,10 @@ plus `t` (unix time) and `mac`.
 Error codes: `RELAY_CAPACITY`, `RELAY_NO_UPLINK`, `RELAY_NOT_ALLOWED`,
 `RELAY_NO_SESSION`, `RELAY_RATE_LIMITED`, `RELAY_UPLINK_FAILED`,
 `RELAY_ACL_DENIED` (the relay's upstream refuses the origin's topics),
-`RELAY_WRONG_BROKER` (relay and origin use different upstreams).
+`RELAY_WRONG_BROKER` (relay and origin use different upstreams),
+`RELAY_IDENTITY_FAILED` (claim malformed or proof wrong),
+`RELAY_IDENTITY_REQUIRED` (the relay only carries proven identities, or the
+relay app needs one for this traffic).
 
 ---
 
@@ -128,8 +142,45 @@ Origin app ◀─on_delivery(ok)── Origin node ◀──RELAY_DATA_ACK──
   every message is signed over `(origin, msg_id, topic, payload, ts)`. The relay
   passes `req.signature` and `req.ts` upstream, and the platform checks them with
   `verify_origin()`. A compromised relay can then drop data but can't forge it.
+- **Origin identity (proof of key possession):** see §7.1.
 - **Not provided:** encryption on the LAN. Frames are authenticated, not
   confidential. Run the mesh on a trusted VLAN, or add CURVE later.
+
+### 7.1 Origin identity
+
+The mesh key proves "a mesh member sent this", not *which* member. An origin
+that has a long-term key (`MeshNode(cfg, identity=StaticKey)` or
+`set_identity(key)`, the same X25519 key as its NSC uplink identity) proves it
+on every `RELAY_OPEN`:
+
+```
+origin → relay : RELAY_OPEN      {meta, id: S_pub}
+relay  → origin: RELAY_CHALLENGE {n, e: E_pub}               fresh nonce + ephemeral per attempt
+origin → relay : RELAY_PROVE     {mac}
+    k   = HKDF(salt = SHA256("NIKA-MESH-v1/origin-proof/X25519/HMAC-SHA256" ‖ n), ikm = DH(S, E))[0]
+    mac = HMAC-SHA256(k, canonical({l: label, r: relay_id, o: origin_id, n, e, s: S_pub, m: SHA256(canonical(meta))}))
+relay → origin : RELAY_OPEN_ACK  (accepted only if mac == recomputed with DH(E, S_pub))
+```
+
+- Only the holder of S's private key can compute `DH(S, E)`. The relay's
+  ephemeral is new for every challenge and used once, so a proof can't be
+  replayed. Both node ids and the meta are in the MAC, so a proof can't be
+  forwarded to another relay or reused with different meta.
+- The relay exposes the result as `session_identity(origin)`: the 32-byte key
+  the origin **proved**, or `None`. Apps must name the origin upstream by this,
+  never by anything in `session_meta()` (which is self-declared).
+- If a session re-opens with a **different** identity (or none), the relay ends
+  the old session first (`on_session(origin, False)`, pending commands
+  `no_session`), then starts the new one. Someone who takes over a node id on
+  the LAN can't inherit the identity it proved.
+- `require_identity=True` (relay config) refuses every origin that doesn't
+  prove a key (`RELAY_IDENTITY_REQUIRED`). Default `False`: origins without an
+  identity are still carried, with `session_identity() == None`.
+- Unanswered challenges expire after 10 s. At most `max(16, 4 × relay_capacity)`
+  are outstanding at once.
+- **Compatibility:** an older relay ignores `id` and accepts as before. An older
+  origin never sends `id`, so a new relay carries it unproven (or refuses it
+  with `require_identity`).
 
 ---
 
@@ -143,7 +194,8 @@ node = MeshNode(MeshConfig(node_id="sg-B", mesh_key=SITE_KEY))
 # ---- relay role ----
 node.on_uplink_publish(lambda req: publish_to_mqtt(req))   # then req.ack() / req.fail()
 node.on_session(lambda origin, active: proxy_subscribe(origin) if active else proxy_unsubscribe(origin))
-node.session_meta(origin)          # what the origin sent in RELAY_OPEN (readable inside on_session)
+node.session_meta(origin)          # what the origin sent in RELAY_OPEN (readable inside on_session); self-declared
+node.session_identity(origin)      # 32-byte key the origin PROVED (§7.1), or None; also readable inside on_session
 node.on_command_result(lambda origin, cid, status: ...)
 # when a command arrives on a proxied topic:
 node.forward_command(origin, topic, payload, command_id=cid, expires_at=exp)
@@ -155,6 +207,7 @@ node.on_command(lambda cmd: execute(cmd))                  # already deduped + e
 node.on_delivery(lambda msg_id, ok, reason: mark_outbox(msg_id, ok))
 node.on_state(lambda old, new, relay: ...)
 node.set_session_meta({"topics": my_command_topics})      # sent with every RELAY_OPEN
+node.set_identity(static_key)                             # optional: prove this key to relays (§7.1)
 node.set_uplink(mqtt_connected)                           # call on every connect/disconnect
 node.send(topic, payload, priority=5, msg_id=outbox_row_id)  # only while state == RELAYED
 
@@ -186,6 +239,7 @@ See `api/mesh/config.py`. The main settings:
 | `queue_timeout` | 30 s | queued messages given back if no relay appears |
 | `relay_cooldown` | 30 s | a relay that failed, refused or revoked us is skipped this long |
 | `preferred_relays` | `[]` | node IDs to try first, in order |
+| `require_identity` | `False` | relay: carry only origins that prove an identity key (§7.1) |
 
 Docker: the nodes need `network_mode: host` (Stargate already uses it) for
 broadcast discovery.

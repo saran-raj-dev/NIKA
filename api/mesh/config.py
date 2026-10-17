@@ -51,6 +51,7 @@ class MeshConfig:
 
     # ---- Security ----
     max_clock_skew: float = 120.0        # reject frames older/newer than this
+    require_identity: bool = False       # relay: refuse origins that don't prove an identity key
 
     def __post_init__(self):
         if not self.node_id:
