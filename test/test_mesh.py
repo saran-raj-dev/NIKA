@@ -110,6 +110,13 @@ def collect_deliveries(node):
     return results
 
 
+def advertised(node, peer_id):
+    """Channels `node` last heard `peer_id` advertise ({} before its first beacon).
+    A peer-count check isn't enough in channel tests: the first beacon can go out
+    before set_uplink() is processed and still say {"default": True}."""
+    return next((p["uplinks"] for p in node.peers() if p["node_id"] == peer_id), {})
+
+
 def go_relayed(origin, timeout=5.0):
     origin.set_uplink(False)
     assert wait_for(lambda: origin.state == RELAYED, timeout), f"state={origin.state}"
@@ -604,8 +611,8 @@ def test_relay_choice_prefers_full_channel_coverage(mesh):
         n.set_uplink(True, "mqtt")
         n.set_uplink(True, "nika")
     a.set_uplink(False, "nika")           # A can't do NIKA right now
-    assert wait_for(lambda: len(b.peers()) == 2)
-    assert wait_for(lambda: any(p["node_id"] == "sg-A" and not p["uplinks"]["nika"] for p in b.peers()))
+    assert wait_for(lambda: advertised(b, "sg-A") == {"mqtt": True, "nika": False}
+                    and advertised(b, "sg-C") == {"mqtt": True, "nika": True})
 
     b.set_uplink(False, "nika")
     assert wait_for(lambda: b.state == RELAYED)
@@ -632,7 +639,8 @@ def test_relay_losing_the_needed_channel_triggers_failover(mesh):
     for n in (a, b, c):
         n.set_uplink(True, "mqtt")
         n.set_uplink(True, "nika")
-    assert wait_for(lambda: len(b.peers()) == 2)
+    both = {"mqtt": True, "nika": True}
+    assert wait_for(lambda: advertised(b, "sg-A") == both and advertised(b, "sg-C") == both)
     b.set_uplink(False, "nika")
     assert wait_for(lambda: b.state == RELAYED and b.relay_id == "sg-A")
 
