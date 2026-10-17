@@ -325,6 +325,11 @@ class MeshNode:
         self._post(("forward", origin, topic, payload, command_id, expires_at))
         return True
 
+    def revoke(self, origin: str, reason: str = ERR_RELAY_NOT_ALLOWED):
+        """Relay: end a neighbour's session (e.g. our broker refuses its topics).
+        The origin fails over and won't pick us again for relay_cooldown."""
+        self._post(("revoke", origin, reason))
+
     # =================================================
     # Thread plumbing
     # =================================================
@@ -428,6 +433,11 @@ class MeshNode:
                 self._start_downlink(*item[1:])
             elif kind == "uplink_result":
                 self._finish_uplink(*item[1:])
+            elif kind == "revoke":
+                _, origin, reason = item
+                if origin in self._sessions:
+                    self._router_send(origin, RELAY_REVOKE, {"reason": reason})
+                    self._end_session(origin)
 
     # =================================================
     # Framing
@@ -657,8 +667,18 @@ class MeshNode:
         if not candidates:
             return None
 
-        fresh = [p for p in candidates if self._cooldown.get(p.node_id, 0) <= now]
-        pool = fresh or candidates  # if everyone failed us recently, retry anyway
+        # A relay that failed or refused us waits out relay_cooldown. Retrying it
+        # early would hot-loop against one that keeps revoking (e.g. its broker
+        # refuses our topics).
+        pool = [p for p in candidates if self._cooldown.get(p.node_id, 0) <= now]
+        if not pool:
+            return None
+
+        # operator-chosen relays win, in the order given
+        by_id = {p.node_id: p for p in pool}
+        for pid in self.cfg.preferred_relays:
+            if pid in by_id:
+                return by_id[pid]
 
         # rendezvous hashing: each origin prefers a different relay, so ten
         # stranded gateways spread out instead of piling onto one neighbour

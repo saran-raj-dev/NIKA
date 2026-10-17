@@ -517,3 +517,44 @@ def test_session_meta_reaches_relay(mesh):
     assert wait_for(lambda: len(seen) == 2)
     assert seen[1] == (False, {"topics": ["stargate/gateway/sg-B/cmd"]})
     assert a.session_meta("sg-B") == {}
+
+
+def test_preferred_relay_wins(mesh):
+    a, b, c = mesh.build("sg-A", "sg-B", "sg-C", **{"sg-B": {"preferred_relays": ["sg-C"]}})
+    auto_relay(a)
+    auto_relay(c)
+    mesh.start(a, b, c)
+    assert wait_for(lambda: len(b.peers()) == 2)
+    go_relayed(b)
+    assert b.relay_id == "sg-C"
+
+
+def test_revoke_sends_origin_elsewhere_and_cools_down(mesh):
+    a, b, c = mesh.build("sg-A", "sg-B", "sg-C",
+                         **{"sg-B": {"preferred_relays": ["sg-A"], "relay_cooldown": 30.0}})
+    auto_relay(a)
+    auto_relay(c)
+    mesh.start(a, b, c)
+    assert wait_for(lambda: len(b.peers()) == 2)
+    go_relayed(b)
+    assert b.relay_id == "sg-A"
+
+    a.revoke("sg-B", "RELAY_ACL_DENIED")
+    assert wait_for(lambda: b.state == RELAYED and b.relay_id == "sg-C", timeout=4)
+    assert a.sessions() == []
+
+
+def test_only_relay_in_cooldown_is_not_hammered(mesh):
+    a, b = mesh.build("sg-A", "sg-B", **{"sg-B": {"relay_cooldown": 30.0}})
+    auto_relay(a)
+    opened = []
+    a.on_session(lambda origin, active: opened.append(active))
+    mesh.start(a, b)
+    assert wait_for(lambda: len(b.peers()) == 1)
+    go_relayed(b)
+
+    a.revoke("sg-B", "RELAY_ACL_DENIED")
+    assert wait_for(lambda: b.state == SEEKING)
+    time.sleep(1.5)
+    assert b.state == SEEKING
+    assert opened.count(True) == 1   # no reconnect storm while cooling down

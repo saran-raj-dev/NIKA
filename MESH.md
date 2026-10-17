@@ -53,8 +53,13 @@ uplink is up, so traffic never chains A→B→C and can't loop.
   pick by rendezvous hash of `(origin, peer)`. Different origins prefer different
   relays, so ten stranded gateways spread out instead of piling onto one. The
   choice is kept until it fails.
-- **Cooldown:** a relay that failed or refused is skipped for `relay_cooldown`,
-  unless it is the only option.
+- **Preferred relays:** `preferred_relays` (operator-chosen node IDs) are tried
+  first, in order, whenever they are eligible. Otherwise the hash decides.
+- **Cooldown:** a relay that failed, refused or revoked us is skipped for
+  `relay_cooldown`, even when it is the only candidate. Retrying it early would
+  hot-loop against a relay that keeps refusing (e.g. its broker rejects our
+  topics). The exception is `RELAY_NO_SESSION` (usually a relay restart),
+  which is re-opened straight away.
 - **Recovery hold:** the uplink must stay up for `recover_hold` before the session
   closes. Flapping links don't churn the relay's proxy subscriptions.
 
@@ -76,10 +81,12 @@ plus `t` (unix time) and `mac`.
 | `RELAY_DOWNLINK` | relay → origin | `command_id, topic, payload, expires_at?` |
 | `RELAY_DOWNLINK_ACK` | origin → relay | `command_id, status` (`accepted` / `duplicate` / `expired` / `rejected`) |
 | `RELAY_CLOSE` | origin → relay | — (my uplink is back) |
-| `RELAY_REVOKE` | relay → origin | `reason` (relay lost uplink, shutting down, unknown session) |
+| `RELAY_REVOKE` | relay → origin | `reason` (relay lost uplink, shutting down, unknown session, or app-initiated via `revoke()`) |
 
 Error codes: `RELAY_CAPACITY`, `RELAY_NO_UPLINK`, `RELAY_NOT_ALLOWED`,
-`RELAY_NO_SESSION`, `RELAY_RATE_LIMITED`, `RELAY_UPLINK_FAILED`.
+`RELAY_NO_SESSION`, `RELAY_RATE_LIMITED`, `RELAY_UPLINK_FAILED`,
+`RELAY_ACL_DENIED` (the relay's upstream refuses the origin's topics),
+`RELAY_WRONG_BROKER` (relay and origin use different upstreams).
 
 ---
 
@@ -140,6 +147,8 @@ node.session_meta(origin)          # what the origin sent in RELAY_OPEN (readabl
 node.on_command_result(lambda origin, cid, status: ...)
 # when a command arrives on a proxied topic:
 node.forward_command(origin, topic, payload, command_id=cid, expires_at=exp)
+# when we can't serve a neighbour after all (e.g. our broker refuses its topics):
+node.revoke(origin, "RELAY_ACL_DENIED")   # it fails over and cools us down
 
 # ---- origin role ----
 node.on_command(lambda cmd: execute(cmd))                  # already deduped + expiry-checked
@@ -175,6 +184,8 @@ See `api/mesh/config.py`. The main settings:
 | `relay_timeout` | 6 s | origin fails over after this long without PONG |
 | `recover_hold` | 5 s | uplink must be stable before going direct |
 | `queue_timeout` | 30 s | queued messages given back if no relay appears |
+| `relay_cooldown` | 30 s | a relay that failed, refused or revoked us is skipped this long |
+| `preferred_relays` | `[]` | node IDs to try first, in order |
 
 Docker: the nodes need `network_mode: host` (Stargate already uses it) for
 broadcast discovery.

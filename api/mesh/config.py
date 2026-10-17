@@ -39,6 +39,7 @@ class MeshConfig:
     open_timeout: float = 3.0
     recover_hold: float = 5.0            # uplink must stay up this long before RELAY_CLOSE
     relay_cooldown: float = 30.0         # don't reselect a relay that just failed us
+    preferred_relays: list[str] = field(default_factory=list)  # tried first, in order
     ack_timeout: float = 3.0
     max_attempts: int = 3
     max_inflight: int = 256
