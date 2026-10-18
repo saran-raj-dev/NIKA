@@ -11,9 +11,9 @@ import time
 import random
 import json
 
-from api.server import NikaServer
-from api.envelope import envelope
-from api.protocol import EVENT
+from nika.server import NikaServer
+from nika.envelope import envelope
+from nika.protocol import EVENT
 
 
 def main():

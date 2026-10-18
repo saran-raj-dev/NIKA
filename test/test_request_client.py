@@ -1,4 +1,4 @@
-from api.client import NikaClient
+from nika.client import NikaClient
 import time
 
 def on_response(msg):

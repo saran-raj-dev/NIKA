@@ -1,5 +1,5 @@
 """
-NIKA uplink (api/uplink) tests: real client/server over localhost TCP.
+NIKA uplink (nika/uplink) tests: real client/server over localhost TCP.
 
 Run:  python -m pytest test/test_uplink.py -v
 """
@@ -12,8 +12,8 @@ import pytest_asyncio
 import zmq
 import zmq.asyncio
 
-from api.secure import ClientHandshake, StaticKey
-from api.uplink import (
+from nika.secure import ClientHandshake, StaticKey
+from nika.uplink import (
     CONNECTED, REFUSED, NikaUplinkClient, NikaUplinkServer, UplinkError, UplinkUnavailable,
 )
 
@@ -353,7 +353,7 @@ async def test_concurrent_route_announcements_share_one_request(platform):
 # ---- pre-shared key ----
 
 async def test_psk_client_connects_to_psk_server():
-    from api.secure import generate_psk
+    from nika.secure import generate_psk
     psk = generate_psk()
     p = Platform()
     await p.start(psk=psk)
@@ -369,7 +369,7 @@ async def test_psk_client_connects_to_psk_server():
 
 
 async def test_psk_mismatch_never_connects():
-    from api.secure import generate_psk
+    from nika.secure import generate_psk
     p = Platform()
     await p.start(psk=generate_psk())
     try:
@@ -402,7 +402,7 @@ async def test_psk_mismatch_never_connects():
 async def test_stolen_key_without_psk_cannot_replace_the_live_session():
     """psk2: a holder of a gateway's identity.key but not the psk gets through message 1,
     but the server only switches sessions once the new one proves it finished the handshake."""
-    from api.secure import generate_psk
+    from nika.secure import generate_psk
     psk = generate_psk()
     p = Platform()
     await p.start(psk=psk)

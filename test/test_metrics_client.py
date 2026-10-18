@@ -1,7 +1,7 @@
 # test/test_metrics_client.py
 import time
 import threading
-from api.client import NikaClient
+from nika.client import NikaClient
 
 def on_event(stream, data):
     print(f"[STREAM] {stream} → {data}")

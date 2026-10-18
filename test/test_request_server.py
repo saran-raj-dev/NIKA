@@ -1,4 +1,4 @@
-from api.server import NikaServer
+from nika.server import NikaServer
 
 server = NikaServer()
 

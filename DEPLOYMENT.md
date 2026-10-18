@@ -53,7 +53,7 @@ Events : tcp://127.0.0.1:5556
 ## 4. Running the Server
 
 ```bash
-python -m api.server
+python -m nika.server
 ```
 
 Recommended:

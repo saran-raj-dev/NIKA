@@ -10,7 +10,7 @@ import logging
 import threading
 import time
 
-from api.mesh import MeshConfig, MeshNode
+from nika.mesh import MeshConfig, MeshNode
 
 KEY = b"site-17-mesh-key-change-me"
 

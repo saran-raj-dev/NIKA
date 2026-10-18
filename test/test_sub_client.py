@@ -1,4 +1,4 @@
-from api.client import NikaClient
+from nika.client import NikaClient
 
 def on_event(topic, data):
     print(f"[EVENT] {topic} → {data}")

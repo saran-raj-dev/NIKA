@@ -12,7 +12,7 @@ Run this AFTER starting req_res_server.py
 
 import time
 import threading
-from api.client import NikaClient
+from nika.client import NikaClient
 
 API_KEY = "nika-dev-key-123"
 

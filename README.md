@@ -1,8 +1,9 @@
 # NIKA Protocol
 
-**Version:** 1.0  
+**Version:** 1.0.0 (Python package `nika-protocol`)  
 **Status:** Internal Production  
 **Transport:** ZeroMQ  
+**Licence:** Proprietary. All rights reserved, Saran Raj (see [LICENSE](LICENSE))  
 
 NIKA is a **live-first messaging protocol** designed for internal systems
 requiring low latency, high fan-out, and honest delivery guarantees.
@@ -10,6 +11,41 @@ requiring low latency, high fan-out, and honest delivery guarantees.
 > **Using NIKA with Stargate and ATLAS (or another platform)?** Start with the guide:
 > [`docs/NIKA_GUIDE.md`](docs/NIKA_GUIDE.md), or the interactive version [`docs/nika_guide.html`](docs/nika_guide.html)
 > (with screenshots, a pairing wizard and flow simulators). It has a user part and a developer part.
+
+---
+
+## Install and use
+
+NIKA is a Python package (Python 3.10+; depends on `pyzmq` and `cryptography`). It is proprietary, so
+it is **not on the public PyPI**. Install it from this repository, pinned to a release tag:
+
+```bash
+pip install "nika-protocol @ git+https://github.com/saran-raj-dev/NIKA@v1.0.0"
+```
+
+In `requirements.txt`: `nika-protocol @ git+https://github.com/saran-raj-dev/NIKA@v1.0.0`.
+In `pyproject.toml`: `dependencies = ["nika-protocol @ git+https://github.com/saran-raj-dev/NIKA@v1.0.0"]`.
+A built wheel (`nika_protocol-1.0.0-py3-none-any.whl`) can also be installed directly or served from a
+private package index.
+
+```python
+from nika.secure import StaticKey, parse_public_key          # NSC: keys, handshake, frames
+from nika.uplink import NikaUplinkClient, NikaUplinkServer    # gateway ⇄ platform
+from nika.mesh import MeshNode, MeshConfig                    # LAN relay between gateways
+import nika; print(nika.__version__)
+```
+
+**Build and test from a checkout:**
+
+```bash
+pip install -e ".[test]"          # editable install, with test tools
+python -m pytest                  # secure, uplink and mesh suites
+pip wheel . --no-deps -w dist     # builds dist/nika_protocol-1.0.0-py3-none-any.whl
+```
+
+**Releasing:** bump `version` in `pyproject.toml` and `nika/__init__.py`, merge, then tag `vX.Y.Z`.
+The wire protocol has its own version (`NIKA-NSC-v1`, the handshake version byte), which changes only
+when the wire format does.
 
 ---
 
