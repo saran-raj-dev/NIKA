@@ -1,6 +1,6 @@
 # NIKA Uplink: Peer ⇄ Platform
 
-**Package:** `api.uplink` · **Transport:** ZeroMQ DEALER ⇄ ROUTER over TCP · **Security:** [NSC](SECURE.md) · **Default port:** 47900
+**Package:** `nika.uplink` · **Transport:** ZeroMQ DEALER ⇄ ROUTER over TCP · **Security:** [NSC](SECURE.md) · **Default port:** 47900
 
 The uplink is how a NIKA peer (e.g. a gateway) talks to a NIKA platform: upstream data, downstream commands, and relaying for neighbours, over one encrypted, authenticated session. It's generic: it carries **topic + payload** and never interprets them. Platforms plug in through callbacks.
 
@@ -58,8 +58,8 @@ The client de-duplicates commands by `command_id` and refuses expired ones befor
 ## 5. API
 
 ```python
-from api.secure import StaticKey
-from api.uplink import NikaUplinkServer, NikaUplinkClient, UplinkError, UplinkUnavailable
+from nika.secure import StaticKey
+from nika.uplink import NikaUplinkServer, NikaUplinkClient, UplinkError, UplinkUnavailable
 
 # platform
 server = NikaUplinkServer(server_key, bind="tcp://0.0.0.0:47900",   # psk=... (optional)

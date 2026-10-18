@@ -1,5 +1,5 @@
 """
-NIKA Secure Channel (api/secure) tests.
+NIKA Secure Channel (nika/secure) tests.
 
 Run:  python -m pytest test/test_secure.py -v
 """
@@ -10,11 +10,11 @@ import time
 
 import pytest
 
-from api.secure import (
+from nika.secure import (
     ClientHandshake, NSCError, ServerHandshake, StaticKey, encode_public_key, fingerprint,
     generate_psk, parse_psk, parse_public_key,
 )
-from api.secure import channel as ch
+from nika.secure import channel as ch
 
 
 def handshake(client_payload=b"hello", server_payload=b"welcome"):

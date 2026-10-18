@@ -10,11 +10,11 @@ import time
 
 import pytest
 
-from api.mesh import (
+from nika.mesh import (
     ACCEPT, DUPLICATE, EXPIRED, DIRECT, RELAYED, SEEKING,
     CommandGuard, MeshConfig, MeshNode, NoRelayAvailable,
 )
-from api.mesh.security import seal, unseal
+from nika.mesh.security import seal, unseal
 
 KEY = b"test-mesh-key-0123456789"
 
@@ -455,7 +455,7 @@ def test_origin_signature_roundtrip():
     pytest.importorskip("cryptography")
     from cryptography.hazmat.primitives import serialization
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-    from api.mesh import OriginSigner, verify_origin
+    from nika.mesh import OriginSigner, verify_origin
 
     key = Ed25519PrivateKey.generate()
     priv = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
@@ -473,7 +473,7 @@ def test_signature_travels_through_relay(mesh):
     pytest.importorskip("cryptography")
     from cryptography.hazmat.primitives import serialization
     from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-    from api.mesh import OriginSigner, verify_origin
+    from nika.mesh import OriginSigner, verify_origin
 
     key = Ed25519PrivateKey.generate()
     priv = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
@@ -681,8 +681,8 @@ def test_relay_app_failure_on_one_channel_keeps_the_relay(mesh):
 # Origin identity: proof of key possession
 # =================================================
 
-from api.mesh import identity as mesh_identity
-from api.secure import StaticKey
+from nika.mesh import identity as mesh_identity
+from nika.secure import StaticKey
 
 
 class _Impostor:
@@ -701,7 +701,7 @@ def _relay_port(node):
 
 
 def _raw_frame(sender, msg_type, payload, key=KEY):
-    from api.envelope import envelope
+    from nika.envelope import envelope
     frame = envelope(msg_type=msg_type, payload=payload, sender=sender)
     frame["t"] = time.time()
     return seal(frame, key)

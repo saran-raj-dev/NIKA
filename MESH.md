@@ -1,7 +1,7 @@
 # NIKA Mesh — Gateway Relay Specification
 
 **Status:** Experimental (v0.2)
-**Package:** `api.mesh`
+**Package:** `nika.mesh`
 **Transport:** UDP (discovery) + ZeroMQ ROUTER/DEALER (sessions)
 
 ---
@@ -187,7 +187,7 @@ relay → origin : RELAY_OPEN_ACK  (accepted only if mac == recomputed with DH(E
 ## 8. Application contract
 
 ```python
-from api.mesh import MeshConfig, MeshNode, NoRelayAvailable
+from nika.mesh import MeshConfig, MeshNode, NoRelayAvailable
 
 node = MeshNode(MeshConfig(node_id="sg-B", mesh_key=SITE_KEY))
 
@@ -224,7 +224,7 @@ Callbacks run on the mesh thread. Don't block in them. In an asyncio app, use
 
 ## 9. Configuration
 
-See `api/mesh/config.py`. The main settings:
+See `nika/mesh/config.py`. The main settings:
 
 | Setting | Default | Notes |
 |---|---|---|

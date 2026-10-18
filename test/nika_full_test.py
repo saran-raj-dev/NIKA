@@ -12,7 +12,7 @@ Tests:
 
 import time
 import threading
-from api.client import NikaClient
+from nika.client import NikaClient
 
 API_KEY = "nika-dev-key-123"
 STREAM_OK = "numbers"

@@ -387,9 +387,9 @@ footer { color: var(--muted); font-size: 13px; text-align: center; padding: 20px
   <h2>Three parts, one protocol</h2>
   <p>Each part is a separate package you can import. Specs live next to the code in the NIKA repo.</p>
   <div class="grid3">
-    <div class="card"><div class="pkg">api.secure</div><h4>🔐 NSC: secure channel</h4><p class="muted">Two parties prove who they are with public keys, then talk encrypted. It's built only from proven building blocks (X25519, ChaCha20-Poly1305, HKDF).</p><a href="../SECURE.md">SECURE.md</a></div>
-    <div class="card"><div class="pkg">api.uplink</div><h4>☁️ Uplink: gateway ⇄ platform</h4><p class="muted">Data goes up and is acknowledged only once the platform has <b>stored</b> it. Commands come down. Relaying is announced, never hidden.</p><a href="../UPLINK.md">UPLINK.md</a></div>
-    <div class="card"><div class="pkg">api.mesh</div><h4>🕸️ Mesh: neighbours help</h4><p class="muted">Gateways on one LAN find each other and carry each other's traffic, separately for MQTT and NIKA, when a link fails.</p><a href="../MESH.md">MESH.md</a></div>
+    <div class="card"><div class="pkg">nika.secure</div><h4>🔐 NSC: secure channel</h4><p class="muted">Two parties prove who they are with public keys, then talk encrypted. It's built only from proven building blocks (X25519, ChaCha20-Poly1305, HKDF).</p><a href="../SECURE.md">SECURE.md</a></div>
+    <div class="card"><div class="pkg">nika.uplink</div><h4>☁️ Uplink: gateway ⇄ platform</h4><p class="muted">Data goes up and is acknowledged only once the platform has <b>stored</b> it. Commands come down. Relaying is announced, never hidden.</p><a href="../UPLINK.md">UPLINK.md</a></div>
+    <div class="card"><div class="pkg">nika.mesh</div><h4>🕸️ Mesh: neighbours help</h4><p class="muted">Gateways on one LAN find each other and carry each other's traffic, separately for MQTT and NIKA, when a link fails.</p><a href="../MESH.md">MESH.md</a></div>
   </div>
   <h3>Five ideas to remember</h3>
   <div class="idea"><div class="n">1</div><div><b>Alongside MQTT, not instead of it.</b> A Stargate can send to MQTT, to NIKA, or to both at once. Turning NIKA on or off never touches MQTT.</div></div>
@@ -541,10 +541,10 @@ footer { color: var(--muted); font-size: 13px; text-align: center; padding: 20px
   <h2>Layout and the “NIKA-specific” rule</h2>
   <p>NIKA is a protocol. <span style="color:var(--violet)">Protocol code</span> lives in the NIKA repo and is <b>vendored</b> (copied) into each application. <span style="color:var(--warn)">Application code</span> lives in the application and plugs in through callbacks.</p>
 <pre class="tree"><span class="proto">NIKA/                                   the protocol (nothing app-specific here)
-  api/secure/        NSC: handshake, sessions, keys
-  api/uplink/        NikaUplinkServer / NikaUplinkClient
-  api/mesh/          MeshNode, MeshConfig, CommandGuard
-  api/protocol.py    message types and error codes
+  nika/secure/        NSC: handshake, sessions, keys
+  nika/uplink/        NikaUplinkServer / NikaUplinkClient
+  nika/mesh/          MeshNode, MeshConfig, CommandGuard
+  nika/protocol.py    message types and error codes
   SECURE.md  UPLINK.md  MESH.md
   test/test_{secure,uplink,mesh}.py</span>
 
@@ -558,7 +558,7 @@ ATLAS/backend/atlas/services/commands.py      writebacks + raw commands</span></
   <div class="grid3">
     <div class="card"><h4 style="color:var(--violet)">Goes into NIKA</h4><p class="muted">Crypto, framing, sessions, acks, ordering, relaying, routes, command de-duplication, error codes.</p></div>
     <div class="card"><h4 style="color:var(--warn)">Stays in the app</h4><p class="muted">Which keys are allowed, how data is stored, what a topic means, retries against your own DB, UI.</p></div>
-    <div class="card"><h4>Re-vendoring</h4><p class="muted">Copy <code>api/{secure,uplink,mesh,protocol.py,envelope.py}</code> plus the specs. NIKA's imports are relative, so the copy works under any package name.</p></div>
+    <div class="card"><h4>Install or vendor</h4><p class="muted">Preferred: <code>pip install "nika-protocol @ git+https://github.com/saran-raj-dev/NIKA@v1.0.0"</code>, then import <code>nika.*</code>. Vendoring still works: copy <code>nika/{secure,uplink,mesh,protocol.py,envelope.py}</code>; NIKA's imports are relative, so the copy works under any package name.</p></div>
   </div>
 </section>
 
@@ -584,7 +584,7 @@ ATLAS/backend/atlas/services/commands.py      writebacks + raw commands</span></
   <h3>Try it: fingerprint from a public key</h3>
   <p class="muted">This is computed locally in your browser, the same way NIKA does it. Paste the two keys to check that a pairing matches.</p>
   <div class="fp" id="fpTool2"></div>
-<pre><code><span class="k">from</span> api.secure <span class="k">import</span> StaticKey, ClientHandshake, ServerHandshake
+<pre><code><span class="k">from</span> nika.secure <span class="k">import</span> StaticKey, ClientHandshake, ServerHandshake
 server, client = StaticKey.generate(), StaticKey.generate()
 hs_c = ClientHandshake(client, server.public)          <span class="c"># client knows the server key</span>
 hs_s = ServerHandshake(server)
@@ -648,7 +648,7 @@ c_sess, _ = hs_c.read_message2(m2)
     <tr><td>Session meta</td><td>Origin <code>set_session_meta({...})</code>, relay <code>session_meta(origin)</code>. Stargate uses it to check that both gateways talk to the <b>same platform</b> (server fingerprint) before relaying NIKA. Meta is <b>self-declared</b>: never use it to decide who the origin is</td></tr>
     <tr><td>Origin identity</td><td>Origin <code>set_identity(static_key)</code> (Stargate: its NIKA key). The relay challenges every <code>RELAY_OPEN</code> and <code>session_identity(origin)</code> returns the <b>proven</b> 32-byte key, or <code>None</code>. <code>require_identity=True</code> refuses origins that prove nothing</td></tr>
   </table></div>
-<pre><code><span class="k">from</span> api.mesh <span class="k">import</span> MeshNode, MeshConfig
+<pre><code><span class="k">from</span> nika.mesh <span class="k">import</span> MeshNode, MeshConfig
 node = MeshNode(MeshConfig(node_id=<span class="s">"sg-roof"</span>, mesh_key=SITE_KEY, preferred_relays=[<span class="s">"sg-ground"</span>]))
 node.on_uplink_publish(<span class="k">lambda</span> req: upstream(req))   <span class="c"># relay side: call req.ack() / req.fail(reason)</span>
 node.on_delivery(<span class="k">lambda</span> msg_id, ok, reason: ...)      <span class="c"># origin side: outcome of send()</span>
@@ -669,8 +669,8 @@ node.set_uplink(<span class="k">False</span>, channel=<span class="s">"nika"</sp
     <button role="tab" aria-selected="false" data-tab="p3">Checklist</button>
   </div>
   <div class="tabpanel" data-panel="p1">
-<pre><code><span class="k">from</span> api.secure <span class="k">import</span> StaticKey
-<span class="k">from</span> api.uplink <span class="k">import</span> NikaUplinkServer, DataMessage
+<pre><code><span class="k">from</span> nika.secure <span class="k">import</span> StaticKey
+<span class="k">from</span> nika.uplink <span class="k">import</span> NikaUplinkServer, DataMessage
 
 key = load_or_create_platform_key()          <span class="c"># keep it safe: it IS the platform's identity</span>
 
@@ -725,8 +725,8 @@ route = <span class="k">await</span> server.send_command(peer_id, <span class="s
     <button role="tab" aria-selected="false" data-tab="g2">How Stargate does it</button>
   </div>
   <div class="tabpanel" data-panel="g1">
-<pre><code><span class="k">from</span> api.secure <span class="k">import</span> StaticKey, parse_public_key
-<span class="k">from</span> api.uplink <span class="k">import</span> NikaUplinkClient, UplinkError, UplinkUnavailable
+<pre><code><span class="k">from</span> nika.secure <span class="k">import</span> StaticKey, parse_public_key
+<span class="k">from</span> nika.uplink <span class="k">import</span> NikaUplinkClient, UplinkError, UplinkUnavailable
 
 key = StaticKey.load_or_create(<span class="s">"/data/nika/identity.key"</span>)
 client = NikaUplinkClient(key, parse_public_key(PLATFORM_KEY), endpoint=<span class="s">"tcp://atlas:47900"</span>,
@@ -984,7 +984,7 @@ client = NikaUplinkClient(key, parse_public_key(PLATFORM_KEY), endpoint=<span cl
     <tr><td><code>RELAY_PING</code> / <code>RELAY_PONG</code></td><td>keepalive</td><td>—</td></tr>
     <tr><td><code>RELAY_CLOSE</code> / <code>RELAY_REVOKE</code></td><td>origin is back / relay gives up</td><td><code>reason</code></td></tr>
   </table></div>
-  <h3>All message types and error codes (<code>api.protocol</code>)</h3>
+  <h3>All message types and error codes (<code>nika.protocol</code>)</h3>
   <div class="table-wrap"><table>
     <tr><th>Group</th><th>Names</th></tr>
     <tr><td>Core</td><td><code>REQUEST RESPONSE ERROR SUBSCRIBE UNSUBSCRIBE EVENT PING PONG STREAM_START STREAM_STOP STREAM RESUME_STREAM STREAM_STATS METRICS CLIENT_JOIN CLIENT_LEAVE</code></td></tr>
@@ -1008,8 +1008,8 @@ client = NikaUplinkClient(key, parse_public_key(PLATFORM_KEY), endpoint=<span cl
     <tr><td>PUB/SUB (events)</td><td>PUB ⇄ SUB <code>:5556</code></td><td>Fire-and-forget, may miss messages</td></tr>
     <tr><td>STREAMS (data)</td><td>over control + event sockets</td><td>Live only, sequence numbers, drop-tolerant, per-client flow control</td></tr>
   </table></div>
-<pre><code><span class="k">from</span> api.server <span class="k">import</span> NikaServer
-<span class="k">from</span> api.client <span class="k">import</span> NikaClient
+<pre><code><span class="k">from</span> nika.server <span class="k">import</span> NikaServer
+<span class="k">from</span> nika.client <span class="k">import</span> NikaClient
 NikaServer(control_addr=<span class="s">"tcp://127.0.0.1:5555"</span>, event_addr=<span class="s">"tcp://127.0.0.1:5556"</span>).start()
 c = NikaClient(api_key=<span class="s">"…"</span>)                  <span class="c"># CLIENT_JOIN {auth: {api_key}}</span>
 c.on_event(<span class="k">lambda</span> topic, data: ...); c.start()
@@ -1035,7 +1035,7 @@ c.request(<span class="s">"get_status"</span>); c.subscribe(<span class="s">"ale
     <li>Test against Python: run your client against <code>NikaUplinkServer</code> and check that <code>sessions()</code> shows your fingerprint.</li>
   </ol>
   <h3>Vendoring and versioning</h3>
-  <p>Copy <code>api/secure</code>, <code>api/uplink</code>, <code>api/mesh</code>, <code>api/protocol.py</code> and <code>api/envelope.py</code> into the app (Stargate <code>gateway/NIKA/</code>, ATLAS <code>backend/atlas/vendor/nika/</code>). Never edit the copy: change NIKA, run its tests, re-copy. Byte 0 of every handshake message and frame is the NSC version. An incompatible change becomes <code>NIKA-NSC-v2</code> with a new version byte, so old and new peers fail cleanly.</p>
+  <p>Copy <code>nika/secure</code>, <code>nika/uplink</code>, <code>nika/mesh</code>, <code>nika/protocol.py</code> and <code>nika/envelope.py</code> into the app (Stargate <code>gateway/NIKA/</code>, ATLAS <code>backend/atlas/vendor/nika/</code>). Never edit the copy: change NIKA, run its tests, re-copy. Byte 0 of every handshake message and frame is the NSC version. An incompatible change becomes <code>NIKA-NSC-v2</code> with a new version byte, so old and new peers fail cleanly.</p>
 </section>
 
 <footer>NIKA Guide · Markdown version: <a href="NIKA_GUIDE.md">NIKA_GUIDE.md</a> · Specs: <a href="../SECURE.md">SECURE</a> · <a href="../UPLINK.md">UPLINK</a> · <a href="../MESH.md">MESH</a></footer>
@@ -1718,7 +1718,7 @@ $("#resetSim").click();
     ["Handshake cost.", "Every message 1 costs the server two X25519 operations before it can reject it, and there's no per-IP rate limit. <i>Today:</i> firewall 47900 to the gateways' networks."],
     ["No socket-level size cap on the mesh.", "The uplink caps messages at 1 MiB. On the mesh, only holders of the key can send frames that get processed."],
     ["Clock dependence.", "Handshakes and mesh frames need clocks within ±120 s. Run NTP everywhere."],
-    ["The core models are plaintext with demo API keys.", "<code>api/server.py</code> (REQ/RES, PUB/SUB, STREAMS) uses keys hard-coded in <code>api/auth.py</code>. Keep it to localhost or a private network, and replace the keys before real use."],
+    ["The core models are plaintext with demo API keys.", "<code>nika/server.py</code> (REQ/RES, PUB/SUB, STREAMS) uses keys hard-coded in <code>nika/auth.py</code>. Keep it to localhost or a private network, and replace the keys before real use."],
     ["The fingerprint is short (32 bits).", "It's fine for a human sanity check. The software always compares the full 256-bit key."],
   ];
   $("#gapList").innerHTML = G.map((g, i) => `<div class="gap"><div class="n">${i + 1}</div><div><b>${g[0]}</b> ${g[1]}</div></div>`).join("");
@@ -1737,7 +1737,7 @@ $("#resetSim").click();
     "Turn on “May relay” only for gateways that should carry others.",
     "Disable or remove a lost or decommissioned gateway in ATLAS right away (this cuts its session).",
     "Run NTP on every gateway and on the platform.",
-    "Don't expose the core NIKA server (api/server.py) outside a private network.",
+    "Don't expose the core NIKA server (nika/server.py) outside a private network.",
   ];
   const done = new Set(store.get("seccheck", []));
   $("#secCheck").innerHTML = C.map((t, i) => `<label class="check" style="display:flex;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--border)"><input type="checkbox" data-i="${i}" ${done.has(i) ? "checked" : ""} style="margin-top:4px"> <span>${t}</span></label>`).join("");
@@ -1747,7 +1747,7 @@ $("#resetSim").click();
 /* ---------------------------------------------------------------- reference: API tables */
 (() => {
   const A = [
-    ["api.secure", [
+    ["nika.secure", [
       ["StaticKey.generate()", "→ StaticKey", "New random X25519 identity"],
       ["StaticKey.load_or_create(path)", "→ StaticKey", "Creates the key file (mode 0600) if missing"],
       ["StaticKey.load(path) / .save(path)", "", "NIKA-NSC-KEY v1 text format"],
@@ -1764,7 +1764,7 @@ $("#resetSim").click();
       ["Session.peer_public / .peer_fingerprint / .handshake_hash", "", ""],
       ["NSCError", "exception", "Deliberately unspecific"],
     ]],
-    ["api.uplink: NikaUplinkServer", [
+    ["nika.uplink: NikaUplinkServer", [
       ["NikaUplinkServer(key, *, bind, authorize, on_data, on_route=None, on_session=None, on_command_ack=None, session_timeout=30, max_skew=120, psk=None)", "", "authorize: async(bytes) → peer_id|None · on_data: async(DataMessage) → None|True|False|\"REASON\""],
       ["await start() / await stop()", "", "stop sends BYE to every session"],
       ["endpoint", "str", "The bound endpoint (useful with port 0)"],
@@ -1774,7 +1774,7 @@ $("#resetSim").click();
       ["await disconnect(peer_id, reason)", "→ bool", "The peer may reconnect and is authorised again"],
       ["on_data result", "", "None/True → ack ok · False or exception → UPLINK_STORE_FAILED · str → rejected with that reason"],
     ]],
-    ["api.uplink: NikaUplinkClient", [
+    ["nika.uplink: NikaUplinkClient", [
       ["NikaUplinkClient(key, server_public, *, endpoint, meta=None, on_command=None, on_state=None, command_guard=None, heartbeat=5, timeout=15, handshake_timeout=5, ack_timeout=15, max_backoff=30, psk=None)", "", "on_command: async(Command) → status"],
       ["await start() / await stop() / await wait_connected(timeout)", "", "Reconnects with exponential backoff"],
       ["connected, state, last_error, connected_since, peer_id, server_fingerprint, metrics", "", "state: disconnected | connecting | connected | refused"],
@@ -1784,7 +1784,7 @@ $("#resetSim").click();
       ["DataMessage", "peer_id, origin, msg_id, topic, payload, qos, meta, .relayed", "What on_data receives"],
       ["Command", "command_id, topic, payload, expires_at, target", "target = None → for this peer"],
     ]],
-    ["api.mesh: MeshNode", [
+    ["nika.mesh: MeshNode", [
       ["MeshNode(config, *, signer=None, identity=None)", "", "Own thread; callbacks run on it (use call_soon_threadsafe in asyncio)"],
       ["start() / stop(timeout=2)", "", ""],
       ["set_uplink(up, channel=\"default\") / uplinks()", "", "Per-channel own-uplink state, advertised in beacons"],
@@ -1801,7 +1801,7 @@ $("#resetSim").click();
       ["revoke(origin, reason)", "", "Relay ends a session; the origin fails over and cools down"],
       ["commands", "CommandGuard", "Share it with the uplink client"],
     ]],
-    ["api.mesh: MeshConfig", [
+    ["nika.mesh: MeshConfig", [
       ["node_id, mesh_key", "required", "mesh_key ≥ 16 bytes"],
       ["bind_host, mesh_port, advertise_host", "0.0.0.0, 47801, None", "Relay socket"],
       ["discovery_port, broadcast_addrs, static_peers, allowed_peers", "47800, [255.255.255.255], [], None", "Discovery"],
@@ -1812,7 +1812,7 @@ $("#resetSim").click();
       ["command_dedupe_ttl, downlink_retry, max_clock_skew", "3600, 1, 120", ""],
       ["require_identity", "False", "Relay: refuse origins that don't prove an identity key"],
     ]],
-    ["api.mesh: commands and signing", [
+    ["nika.mesh: commands and signing", [
       ["CommandGuard(ttl=3600).check(command_id, expires_at=None)", "→ accepted | duplicate | expired", "Thread-safe"],
       ["OriginSigner(private_key_pem).sign(origin, msg_id, topic, payload, ts)", "→ base64", "Ed25519"],
       ["verify_origin(public_key_pem, origin, msg_id, topic, payload, ts, signature)", "→ bool", "For the platform"],

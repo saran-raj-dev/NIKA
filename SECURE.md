@@ -1,6 +1,6 @@
 # NIKA Secure Channel (NSC) v1
 
-**Package:** `api.secure` · **Status:** v1
+**Package:** `nika.secure` · **Status:** v1
 
 NSC is NIKA's own encrypted, mutually authenticated channel between two peers. The protocol (handshake shape, framing, key schedule, labels) is NIKA's. The building blocks are proven, standard primitives, because home-made ciphers are reliably broken:
 
@@ -88,7 +88,7 @@ body              = ChaCha20-Poly1305(key[epoch], nonce = 0⁴ ‖ counter(LE), 
 ## 4. API
 
 ```python
-from api.secure import StaticKey, ClientHandshake, ServerHandshake, parse_public_key
+from nika.secure import StaticKey, ClientHandshake, ServerHandshake, parse_public_key
 
 server_key = StaticKey.load_or_create("/var/lib/app/nika/server.key")
 client_key = StaticKey.load_or_create("/var/lib/app/nika/identity.key")
@@ -109,7 +109,7 @@ kind, data = server_session.decrypt(frame)   # raises NSCError on anything wrong
 With a deployment pre-shared key, both sides pass the same `psk` (text or 32 bytes):
 
 ```python
-from api.secure import generate_psk
+from nika.secure import generate_psk
 psk = generate_psk()                                    # store it like a password
 c = ClientHandshake(client_key, server_key.public, psk=psk)
 s = ServerHandshake(server_key, psk=psk)

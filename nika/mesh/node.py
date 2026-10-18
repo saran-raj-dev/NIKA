@@ -173,7 +173,7 @@ class _Downlink:
 
 class MeshNode:
     def __init__(self, config: MeshConfig, *, signer=None, identity=None):
-        """`identity`: optional long-term key (an `api.secure.StaticKey`). Origins
+        """`identity`: optional long-term key (an `nika.secure.StaticKey`). Origins
         that have one prove it to relays; relays expose the verified key through
         session_identity(origin)."""
         self.cfg = config
@@ -318,7 +318,7 @@ class MeshNode:
             return dict(self._session_meta.get(origin) or {})
 
     def set_identity(self, identity):
-        """Origin: the long-term key (an `api.secure.StaticKey`, or None) to prove to
+        """Origin: the long-term key (an `nika.secure.StaticKey`, or None) to prove to
         relays. Used from the next RELAY_OPEN on."""
         self._identity = identity
 

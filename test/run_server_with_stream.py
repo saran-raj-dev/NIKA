@@ -1,7 +1,7 @@
 # test/run_server_with_stream.py
 import time
 import threading
-from api.server import NikaServer
+from nika.server import NikaServer
 
 server = NikaServer()
 print("NIKA server running with stream producer...")

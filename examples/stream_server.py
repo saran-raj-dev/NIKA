@@ -12,9 +12,9 @@ import json
 import random
 import threading
 
-from api.server import NikaServer
-from api.envelope import envelope
-from api.protocol import STREAM
+from nika.server import NikaServer
+from nika.envelope import envelope
+from nika.protocol import STREAM
 
 
 STREAM_NAME = "numbers"

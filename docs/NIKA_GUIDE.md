@@ -21,9 +21,9 @@ NIKA is a protocol **you own**. It has three parts, and each one is a separate p
 
 | Package | What it does | Spec |
 |---|---|---|
-| `api.secure` | **NSC**, the NIKA Secure Channel: two parties prove who they are using public keys and then talk encrypted | [SECURE.md](../SECURE.md) |
-| `api.uplink` | **Uplink**: a gateway ⇄ platform session over NSC. Data goes up and is acked once *stored*; commands come down | [UPLINK.md](../UPLINK.md) |
-| `api.mesh` | **Mesh**: gateways on one LAN find each other and carry each other's traffic when one loses its link | [MESH.md](../MESH.md) |
+| `nika.secure` | **NSC**, the NIKA Secure Channel: two parties prove who they are using public keys and then talk encrypted | [SECURE.md](../SECURE.md) |
+| `nika.uplink` | **Uplink**: a gateway ⇄ platform session over NSC. Data goes up and is acked once *stored*; commands come down | [UPLINK.md](../UPLINK.md) |
+| `nika.mesh` | **Mesh**: gateways on one LAN find each other and carry each other's traffic when one loses its link | [MESH.md](../MESH.md) |
 
 ```
                        ┌──────────── ATLAS (or any NIKA platform) ────────────┐
@@ -192,10 +192,10 @@ The route line tells you how the write travelled: *over MQTT*, *over NIKA*, or *
 
 ```
 NIKA/                         ← the protocol (this repo). Nothing app-specific lives here.
-  api/secure/                 NSC: handshake, sessions, keys
-  api/uplink/                 NikaUplinkServer / NikaUplinkClient
-  api/mesh/                   MeshNode, MeshConfig, CommandGuard
-  api/protocol.py             message types and error codes (UPLINK_*, RELAY_*, ERR_*)
+  nika/secure/                 NSC: handshake, sessions, keys
+  nika/uplink/                 NikaUplinkServer / NikaUplinkClient
+  nika/mesh/                   MeshNode, MeshConfig, CommandGuard
+  nika/protocol.py             message types and error codes (UPLINK_*, RELAY_*, ERR_*)
   SECURE.md UPLINK.md MESH.md specs
   test/test_{secure,uplink,mesh}.py
 
@@ -210,9 +210,9 @@ ATLAS/backend/atlas/services/commands.py      writebacks + raw commands
 
 **Rule:** anything that is about *the protocol* (crypto, framing, sessions, acks, relaying, de-duplication) goes into NIKA and is re-vendored. Anything that is about *an application* (which keys are allowed, how data is stored, what a topic means, UI) goes into the application, through NIKA's callbacks. That is why NIKA's server takes `authorize`, `on_data` and `on_route` callables instead of a database.
 
-Re-vendoring is a plain copy of `api/{secure,uplink,mesh,protocol.py,envelope.py}` plus the specs. Imports inside NIKA are relative, so the copy works under any package name.
+**Preferred:** install NIKA as a package (`pip install "nika-protocol @ git+https://github.com/saran-raj-dev/NIKA@v1.0.0"`) and import `nika.*`. Vendoring still works: copy `nika/{secure,uplink,mesh,protocol.py,envelope.py}` plus the specs. Imports inside NIKA are relative, so the copy works under any package name.
 
-## B2. NSC: the secure channel (`api.secure`)
+## B2. NSC: the secure channel (`nika.secure`)
 
 - **Pattern:** Noise-IK style. The client already knows the server's static public key, so the handshake is one round trip, and both static keys are authenticated.
 - **Primitives (all from `cryptography`):** X25519, ChaCha20-Poly1305, HKDF-SHA256, SHA-256. The protocol name `NIKA-NSC-v1/IK/X25519/ChaChaPoly/SHA256` is mixed into the transcript hash.
@@ -221,7 +221,7 @@ Re-vendoring is a plain copy of `api/{secure,uplink,mesh,protocol.py,envelope.py
 - **Keys:** `StaticKey.generate() / load_or_create(path)` (file mode 0600), `public_b64` (43 chars), `fingerprint` = first 8 hex characters of SHA-256(public key). `parse_public_key(text)` validates the format (note that any 32 bytes is a valid X25519 key, so format is all that can be checked).
 
 ```python
-from api.secure import StaticKey, ClientHandshake, ServerHandshake, parse_public_key
+from nika.secure import StaticKey, ClientHandshake, ServerHandshake, parse_public_key
 server, client = StaticKey.generate(), StaticKey.generate()
 hs_c = ClientHandshake(client, server.public)            # client knows the server key
 hs_s = ServerHandshake(server)
@@ -233,7 +233,7 @@ assert s_sess.decrypt(c_sess.encrypt(b"hi"))[1] == b"hi"
 
 You normally never touch NSC directly: the uplink uses it for you.
 
-## B3. Uplink: gateway ⇄ platform (`api.uplink`)
+## B3. Uplink: gateway ⇄ platform (`nika.uplink`)
 
 **Transport:** ZeroMQ DEALER (client) ⇄ ROUTER (server) over TCP, default port **47900**. Frames: `H1`/`H2` (handshake), `D` (NSC-encrypted JSON), `E` (plaintext refusal, only `UPLINK_NOT_AUTHORISED`). The maximum message size is 1 MiB.
 
@@ -253,7 +253,7 @@ You normally never touch NSC directly: the uplink uses it for you.
 
 **Errors:** `UPLINK_NOT_AUTHORISED`, `UPLINK_ORIGIN_DENIED`, `UPLINK_STORE_FAILED`, `UPLINK_UNAVAILABLE`, `UPLINK_BAD_MESSAGE`, or any reason string your `on_data` returns.
 
-## B4. Mesh: LAN relaying (`api.mesh`)
+## B4. Mesh: LAN relaying (`nika.mesh`)
 
 - **Discovery:** HMAC-signed UDP beacons on **47800** (broadcast and/or static peers). Each beacon advertises the node's per-channel uplink state, e.g. `{"mqtt": true, "nika": false}`.
 - **Relay sessions:** ZeroMQ on **47801/TCP**, framed and MAC'd with the site's `mesh_key`. An *origin* opens a session to a *relay*. The relay calls your `on_uplink_publish(UplinkRequest)`, and you call `req.ack()` or `req.fail(reason)` once your upstream accepted (or refused) it.
@@ -268,8 +268,8 @@ You normally never touch NSC directly: the uplink uses it for you.
 A NIKA platform needs four things: **a key, a server, an authorisation rule, and a store**.
 
 ```python
-from api.secure import StaticKey, fingerprint
-from api.uplink import NikaUplinkServer, DataMessage
+from nika.secure import StaticKey, fingerprint
+from nika.uplink import NikaUplinkServer, DataMessage
 
 key = load_or_create_platform_key()          # keep it safe; it IS the platform identity
 
@@ -328,8 +328,8 @@ route = await server.send_command(peer_id, "stargate/gateway/sg-roof/cmd", paylo
 ## B6. Integrating a gateway (Stargate is the reference)
 
 ```python
-from api.secure import StaticKey, parse_public_key
-from api.uplink import NikaUplinkClient, UplinkError, UplinkUnavailable
+from nika.secure import StaticKey, parse_public_key
+from nika.uplink import NikaUplinkClient, UplinkError, UplinkUnavailable
 
 key = StaticKey.load_or_create("/data/nika/identity.key")
 client = NikaUplinkClient(key, parse_public_key(PLATFORM_KEY), endpoint="tcp://atlas:47900",
@@ -430,7 +430,7 @@ So NIKA's "secret sauce" is **its own protocol**, built on primitives nobody can
 |---|---|---|---|---|
 | **NSC uplink** (gateway ⇄ platform) | All data, commands and acks between Stargate and ATLAS | **Yes**, ChaCha20-Poly1305 | **Yes, both sides**, by public key | **Yes**: counters, plus remembered handshake ephemerals |
 | **Mesh** (gateway ⇄ gateway, LAN) | Relay sessions, beacons | **No**: readable on the LAN | Yes: HMAC-SHA256 with the **site mesh key** (shared); the origin's own key is **proven** to the relay by a challenge | Yes: frame ids remembered inside a ±120 s window; fresh nonce per identity challenge |
-| **Core models** (REQ/RES, PUB/SUB, STREAMS: `api/server.py`) | Internal apps on a private network | **No** | API key at `CLIENT_JOIN` (demo keys in `api/auth.py`) | REQ/RES idempotency only |
+| **Core models** (REQ/RES, PUB/SUB, STREAMS: `nika/server.py`) | Internal apps on a private network | **No** | API key at `CLIENT_JOIN` (demo keys in `nika/auth.py`) | REQ/RES idempotency only |
 
 **Rule of thumb:** the uplink is safe to run over untrusted networks, including the internet. The mesh is safe on a site LAN you control. The core models are for localhost, a VPN or a private VPC (see `SECURITY.md`).
 
@@ -554,7 +554,7 @@ offset  size  field
 3. **Handshake cost.** Every message 1 costs the server two X25519 operations before it can reject. NIKA has no per-IP handshake rate limit, so a flood of handshakes can load the CPU. *Mitigation:* firewall port 47900 to the networks the gateways connect from.
 4. **The mesh has no message size cap** at the socket level (the uplink caps at 1 MiB). Only mesh members (holders of the key) can send frames that are processed.
 5. **Clock dependence.** Handshakes and mesh frames need clocks within ±120 s. *Run NTP on gateways and on the platform.*
-6. **The core models** (`api/server.py`: REQ/RES, PUB/SUB, STREAMS) are unencrypted and use API keys hard-coded in `api/auth.py` for the demo. Don't expose them beyond localhost or a private network, and replace the keys before any real use.
+6. **The core models** (`nika/server.py`: REQ/RES, PUB/SUB, STREAMS) are unencrypted and use API keys hard-coded in `nika/auth.py` for the demo. Don't expose them beyond localhost or a private network, and replace the keys before any real use.
 7. **The fingerprint is short** (32 bits). It's fine for a human sanity check, but the software always compares the full key, and people shouldn't treat a matching fingerprint as proof against a deliberate attacker.
 
 **Closed since the first review** (no longer gaps):
@@ -584,7 +584,7 @@ Done: **proof of key possession on `RELAY_OPEN`** (C5) and the **deployment pre-
 - [ ] Turn on *May relay* only for gateways that should carry others.
 - [ ] Remove or disable a gateway in ATLAS as soon as the device is decommissioned or lost (this cuts its session immediately).
 - [ ] Run NTP everywhere.
-- [ ] Don't expose the core NIKA server (`api/server.py`) outside a private network.
+- [ ] Don't expose the core NIKA server (`nika/server.py`) outside a private network.
 
 ---
 
@@ -596,16 +596,16 @@ Everything below is the public surface of NIKA. Anything not listed is internal 
 
 | Import | Public names |
 |---|---|
-| `api.secure` | `StaticKey`, `ClientHandshake`, `ServerHandshake`, `Session`, `NSCError`, `fingerprint`, `parse_public_key`, `encode_public_key`, `generate_psk`, `parse_psk`, `PROTOCOL_NAME`, `PROTOCOL_NAME_PSK` |
-| `api.uplink` | `NikaUplinkServer`, `NikaUplinkClient`, `DataMessage`, `Command`, `UplinkError`, `UplinkUnavailable` (plus the constants in `api.uplink.common`) |
-| `api.mesh` | `MeshNode`, `MeshConfig`, `Command`, `UplinkRequest`, `NoRelayAvailable`, `CommandGuard`, `OriginSigner`, `verify_origin`, `PROOF_LABEL`, `DIRECT`, `SEEKING`, `RELAYED`, `ACCEPT`, `DUPLICATE`, `EXPIRED` |
-| `api.protocol` | Message type and error code strings (D6) |
-| `api.envelope` | `envelope(msg_type, payload, msg_id, sender)`, `NIKA_VERSION` |
-| `api.server` / `api.client` | `NikaServer`, `NikaClient`: the core REQ/RES, PUB/SUB and STREAM models (D7) |
+| `nika.secure` | `StaticKey`, `ClientHandshake`, `ServerHandshake`, `Session`, `NSCError`, `fingerprint`, `parse_public_key`, `encode_public_key`, `generate_psk`, `parse_psk`, `PROTOCOL_NAME`, `PROTOCOL_NAME_PSK` |
+| `nika.uplink` | `NikaUplinkServer`, `NikaUplinkClient`, `DataMessage`, `Command`, `UplinkError`, `UplinkUnavailable` (plus the constants in `nika.uplink.common`) |
+| `nika.mesh` | `MeshNode`, `MeshConfig`, `Command`, `UplinkRequest`, `NoRelayAvailable`, `CommandGuard`, `OriginSigner`, `verify_origin`, `PROOF_LABEL`, `DIRECT`, `SEEKING`, `RELAYED`, `ACCEPT`, `DUPLICATE`, `EXPIRED` |
+| `nika.protocol` | Message type and error code strings (D6) |
+| `nika.envelope` | `envelope(msg_type, payload, msg_id, sender)`, `NIKA_VERSION` |
+| `nika.server` / `nika.client` | `NikaServer`, `NikaClient`: the core REQ/RES, PUB/SUB and STREAM models (D7) |
 
 Dependencies: Python ≥ 3.10, `pyzmq` (≥ 26 used), `cryptography`.
 
-## D2. `api.secure`
+## D2. `nika.secure`
 
 | Name | Signature | Notes |
 |---|---|---|
@@ -625,7 +625,7 @@ Dependencies: Python ≥ 3.10, `pyzmq` (≥ 26 used), `cryptography`.
 
 Constants: `VERSION = 1` (frames and plain handshakes), `HANDSHAKE_VERSION_PSK = 2`, `PSK_LEN = 32`, `REKEY_FRAMES = 2**20`, `REKEY_SECONDS = 3600`, `MAX_SKEW_S = 120`, header `>BBHQ` (12 bytes), tag 16 bytes.
 
-## D3. `api.uplink`
+## D3. `nika.uplink`
 
 ### `NikaUplinkServer`
 ```python
@@ -675,7 +675,7 @@ NikaUplinkClient(key, server_public, *, endpoint, meta=None,
 ### Wire constants
 `K_HANDSHAKE1 = b"H1"`, `K_HANDSHAKE2 = b"H2"`, `K_DATA = b"D"`, `K_ERROR = b"E"`, `MAX_FRAME = 1 MiB`, `DEFAULT_PORT = 47900`. ZeroMQ frames: `[kind, data]` from the DEALER; the ROUTER adds the identity.
 
-## D4. `api.mesh`
+## D4. `nika.mesh`
 
 ### `MeshConfig` (all fields)
 | Field | Default | Meaning |
@@ -736,7 +736,7 @@ UDP beacons and TCP relay frames are JSON envelopes:
 
 Error codes: `RELAY_CAPACITY`, `RELAY_NO_UPLINK`, `RELAY_NOT_ALLOWED`, `RELAY_NO_SESSION`, `RELAY_RATE_LIMITED`, `RELAY_UPLINK_FAILED`, `RELAY_ACL_DENIED`, `RELAY_WRONG_BROKER`, `RELAY_IDENTITY_FAILED`, `RELAY_IDENTITY_REQUIRED`.
 
-## D6. All message types and error codes (`api.protocol`)
+## D6. All message types and error codes (`nika.protocol`)
 
 | Group | Names |
 |---|---|
@@ -758,8 +758,8 @@ The original NIKA models for internal apps (see `PROTOCOL.md`, `SECURITY.md`, `D
 | STREAMS (data) | over the control and event sockets | Live only, sequence numbers, drop-tolerant, per-client flow control |
 
 ```python
-from api.server import NikaServer
-from api.client import NikaClient
+from nika.server import NikaServer
+from nika.client import NikaClient
 
 NikaServer(control_addr="tcp://127.0.0.1:5555", event_addr="tcp://127.0.0.1:5556").start()
 
@@ -795,6 +795,6 @@ Methods: `request(command, args)`, `get_status()`, `get_streams()`, `subscribe(t
 
 ## D10. Vendoring and versioning
 
-- Copy `api/secure`, `api/uplink`, `api/mesh`, `api/protocol.py` and `api/envelope.py` (plus the specs) into the app: Stargate `gateway/NIKA/`, ATLAS `backend/atlas/vendor/nika/`. Imports inside NIKA are relative.
+- Copy `nika/secure`, `nika/uplink`, `nika/mesh`, `nika/protocol.py` and `nika/envelope.py` (plus the specs) into the app: Stargate `gateway/NIKA/`, ATLAS `backend/atlas/vendor/nika/`. Imports inside NIKA are relative.
 - Never edit the vendored copy. Change NIKA, run its tests, and re-copy.
 - The NSC version is byte 0 of every handshake message and frame. Any incompatible change becomes `NIKA-NSC-v2` with a new version byte, so old and new peers fail cleanly instead of misreading each other.

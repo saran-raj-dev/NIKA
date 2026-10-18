@@ -1,4 +1,4 @@
-from api.server import NikaServer
+from nika.server import NikaServer
 
 if __name__ == "__main__":
     server = NikaServer()

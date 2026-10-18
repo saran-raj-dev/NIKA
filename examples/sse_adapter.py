@@ -5,7 +5,7 @@ import queue
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 
-from api.client import NikaClient
+from nika.client import NikaClient
 
 app = FastAPI()
 

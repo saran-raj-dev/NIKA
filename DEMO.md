@@ -64,7 +64,7 @@ Do NOT use NIKA if you need:
 Minimal server startup:
 
 ```python
-from api.server import NikaServer
+from nika.server import NikaServer
 
 server = NikaServer(
     control_addr="tcp://127.0.0.1:5555",
@@ -82,7 +82,7 @@ No config files. No magic.
 ## 5. Creating a Client
 
 ```python
-from api.client import NikaClient
+from nika.client import NikaClient
 
 client = NikaClient(
     api_key="nika-dev-key-123"

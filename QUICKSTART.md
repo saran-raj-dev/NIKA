@@ -25,7 +25,7 @@ pip install pyzmq
 Create `run_server.py`:
 
 ```python
-from api.server import NikaServer
+from nika.server import NikaServer
 
 if __name__ == "__main__":
     server = NikaServer()
@@ -55,7 +55,7 @@ Server is now live ✅
 Create `quick_client.py`:
 
 ```python
-from api.client import NikaClient
+from nika.client import NikaClient
 import threading
 import time
 

@@ -13,7 +13,7 @@ IMPORTANT:
 - NOT for streaming or events
 """
 
-from api.server import NikaServer
+from nika.server import NikaServer
 
 
 def main():
