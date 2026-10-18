@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nika-protocol"
+version = "1.0.0"
+description = "NIKA: secure channel (NSC), gateway-platform uplink and LAN mesh relay over ZeroMQ"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "LicenseRef-Proprietary"
+license-files = ["LICENSE"]
+authors = [{ name = "Saran Raj" }]
+dependencies = [
+    "pyzmq>=26",
+    "cryptography>=41",
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Operating System :: OS Independent",
+    "Topic :: System :: Networking",
+    "Topic :: Security :: Cryptography",
+    "Private :: Do Not Upload",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7", "pytest-asyncio>=0.23"]
+
+[project.urls]
+Repository = "https://github.com/saran-raj-dev/NIKA"
+
+[tool.setuptools.packages.find]
+include = ["nika", "nika.*"]
+
+[tool.setuptools.package-data]
+nika = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+# the other test_*.py files are manual scripts that need a running server
+python_files = ["test_secure.py", "test_uplink.py", "test_mesh.py"]
