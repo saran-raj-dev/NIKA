@@ -35,6 +35,7 @@ CLIENT_LEAVE = "CLIENT_LEAVE"
 
 # ---- Mesh (see MESH.md) ----
 MESH_BEACON = "MESH_BEACON"              # UDP: peer presence + uplink health
+MESH_PEER = "MESH_PEER"                  # UDP: application datagram between peers
 
 RELAY_OPEN = "RELAY_OPEN"                # origin -> relay: carry my traffic
 RELAY_OPEN_ACK = "RELAY_OPEN_ACK"        # relay -> origin: accepted / rejected

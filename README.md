@@ -1,6 +1,6 @@
 # NIKA Protocol
 
-**Version:** 1.0.0 (Python package `nika-protocol`)  
+**Version:** 1.1.0 (Python package `nika-protocol`)  
 **Status:** Internal Production  
 **Transport:** ZeroMQ  
 **Licence:** Proprietary. All rights reserved, Saran Raj (see [LICENSE](LICENSE))  
@@ -20,12 +20,12 @@ NIKA is a Python package (Python 3.10+; depends on `pyzmq` and `cryptography`). 
 it is **not on the public PyPI**. Install it from this repository, pinned to a release tag:
 
 ```bash
-pip install "nika-protocol @ git+https://github.com/saran-raj-dev/NIKA@v1.0.0"
+pip install "nika-protocol @ git+https://github.com/saran-raj-dev/NIKA@v1.1.0"
 ```
 
-In `requirements.txt`: `nika-protocol @ git+https://github.com/saran-raj-dev/NIKA@v1.0.0`.
-In `pyproject.toml`: `dependencies = ["nika-protocol @ git+https://github.com/saran-raj-dev/NIKA@v1.0.0"]`.
-A built wheel (`nika_protocol-1.0.0-py3-none-any.whl`) can also be installed directly or served from a
+In `requirements.txt`: `nika-protocol @ git+https://github.com/saran-raj-dev/NIKA@v1.1.0`.
+In `pyproject.toml`: `dependencies = ["nika-protocol @ git+https://github.com/saran-raj-dev/NIKA@v1.1.0"]`.
+A built wheel (`nika_protocol-1.1.0-py3-none-any.whl`) can also be installed directly or served from a
 private package index.
 
 ```python
@@ -40,7 +40,7 @@ import nika; print(nika.__version__)
 ```bash
 pip install -e ".[test]"          # editable install, with test tools
 python -m pytest                  # secure, uplink and mesh suites
-pip wheel . --no-deps -w dist     # builds dist/nika_protocol-1.0.0-py3-none-any.whl
+pip wheel . --no-deps -w dist     # builds dist/nika_protocol-1.1.0-py3-none-any.whl
 ```
 
 **Releasing:** bump `version` in `pyproject.toml` and `nika/__init__.py`, merge, then tag `vX.Y.Z`.

@@ -7,4 +7,4 @@
 Subpackages are imported on demand, so `import nika` pulls in nothing heavy.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"

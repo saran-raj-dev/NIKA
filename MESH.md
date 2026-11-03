@@ -82,6 +82,7 @@ plus `t` (unix time) and `mac`.
 | Type | Direction | Payload |
 |---|---|---|
 | `MESH_BEACON` | UDP broadcast / unicast | `port, host, uplink, relay, load, capacity` |
+| `MESH_PEER` | UDP unicast, node → node | application dict, see §9a |
 | `RELAY_OPEN` | origin → relay | `meta` (app-defined dict, e.g. `{"topics": [...]}` to proxy), `id?` (claimed identity key, base64url) |
 | `RELAY_CHALLENGE` | relay → origin | `n` (32-byte nonce), `e` (relay's fresh X25519 ephemeral), both base64url. Only when `RELAY_OPEN` had `id` |
 | `RELAY_PROVE` | origin → relay | `mac` (hex), see §7.1 |
@@ -243,6 +244,19 @@ See `nika/mesh/config.py`. The main settings:
 
 Docker: the nodes need `network_mode: host` (Stargate already uses it) for
 broadcast discovery.
+
+---
+
+## 9a. Peer messages
+
+`node.peer_send(payload, to=None)` sends a small dict (up to 1200 bytes of JSON) to one
+alive peer, or to all of them, and `node.on_peer_message(fn)` receives `fn(sender, payload)`.
+It works in any state, with or without an uplink, and has nothing to do with relay sessions.
+
+Each message is one `MESH_PEER` UDP datagram, sent to the address the peer's beacons came
+from, with the same MAC, clock-skew, replay and allow-list checks as every other frame.
+There is **no ack, retry or ordering**: applications that need them build them on top.
+Older nodes drop these frames.
 
 ---
 

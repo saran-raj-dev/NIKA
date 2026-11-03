@@ -64,6 +64,7 @@ PUBLISHED_TTL = 300.0
 PUBLISHED_MAX = 50_000
 CHALLENGE_TTL = 10.0          # relay: an unanswered identity challenge is dropped after this
 MIN_CHALLENGES = 16           # relay: outstanding challenges allowed (or 4 x relay_capacity)
+PEER_MAX_PAYLOAD = 1200       # peer_send: JSON bytes, so the sealed frame fits one LAN datagram
 
 
 class NoRelayAvailable(RuntimeError):
@@ -119,6 +120,7 @@ class _Peer:
     capacity: int
     last_seen: float
     uplinks: dict = field(default_factory=dict)   # channel -> up
+    addr: tuple | None = None                     # (ip, udp port) the beacon came from
 
     def channel_up(self, channel: str) -> bool:
         if self.uplinks:
@@ -188,6 +190,7 @@ class MeshNode:
         self._on_command: Callable[[Command], None] | None = None
         self._on_delivery: Callable[[str, bool, str | None], None] | None = None
         self._on_state: Callable[[str, str, str | None], None] | None = None
+        self._on_peer_message: Callable[[str, dict], None] | None = None
 
         # ---- Shared state (read from any thread) ----
         self._lock = threading.Lock()
@@ -215,6 +218,8 @@ class MeshNode:
             "failovers": 0,
             "identity_proofs_ok": 0,
             "identity_proofs_failed": 0,
+            "peer_msgs_sent": 0,
+            "peer_msgs_received": 0,
         }
 
         # ---- Loop-thread-only state ----
@@ -267,6 +272,10 @@ class MeshNode:
     def on_delivery(self, fn: Callable[[str, bool, str | None], None]):
         """Origin: (msg_id, ok, reason) for every message passed to send()."""
         self._on_delivery = fn
+
+    def on_peer_message(self, fn: Callable[[str, dict], None]):
+        """fn(sender, payload) for every peer_send() that reaches this node."""
+        self._on_peer_message = fn
 
     def on_state(self, fn: Callable[[str, str, str | None], None]):
         """Origin: (old_state, new_state, relay_id)."""
@@ -364,6 +373,17 @@ class MeshNode:
         msg_id = msg_id or f"{self.cfg.node_id}:{uuid.uuid4()}"
         self._post(("send", msg_id, topic, payload, int(qos), int(priority), channel))
         return msg_id
+
+    def peer_send(self, payload: dict, *, to: str | None = None):
+        """
+        Send a small dict to one alive peer, or to all of them when `to` is None.
+        Works in any state, uplink or not. It is one authenticated UDP datagram:
+        no ack, no retry, no ordering, so the application handles loss. Raises
+        ValueError above PEER_MAX_PAYLOAD bytes of JSON (split it up instead).
+        """
+        if len(json.dumps(payload, separators=(",", ":"))) > PEER_MAX_PAYLOAD:
+            raise ValueError(f"peer payload exceeds {PEER_MAX_PAYLOAD} bytes")
+        self._post(("peer_send", payload, to))
 
     def forward_command(self, origin: str, topic: str, payload: Any, *, command_id: str,
                         expires_at: float | None = None) -> bool:
@@ -482,6 +502,8 @@ class MeshNode:
                 self._handle_uplink_change(item[1], item[2])
             elif kind == "send":
                 self._enqueue(*item[1:])
+            elif kind == "peer_send":
+                self._send_peer(*item[1:])
             elif kind == "forward":
                 self._start_downlink(*item[1:])
             elif kind == "uplink_result":
@@ -573,18 +595,36 @@ class MeshNode:
                 log.debug("beacon to %s failed: %s", addr, e)
         self.metrics["beacons_sent"] += 1
 
+    def _send_peer(self, payload: dict, to: str | None):
+        now = time.monotonic()
+        with self._lock:
+            targets = [p for p in self._peers.values()
+                       if p.addr and now - p.last_seen <= self.cfg.peer_timeout
+                       and (to is None or p.node_id == to)]
+        raw = self._seal(MESH_PEER, payload)
+        for peer in targets:
+            try:
+                self._udp.sendto(raw, peer.addr)
+                self.metrics["peer_msgs_sent"] += 1
+            except OSError as e:
+                log.debug("peer message to %s failed: %s", peer.node_id, e)
+
     def _recv_udp(self):
         while True:
             try:
-                raw, (src_ip, _) = self._udp.recvfrom(65535)
+                raw, (src_ip, src_port) = self._udp.recvfrom(65535)
             except (BlockingIOError, OSError):
                 return
 
             frame = self._open(raw)
-            if not frame or frame.get("type") != MESH_BEACON:
+            if not frame or frame.get("type") not in (MESH_BEACON, MESH_PEER):
                 continue
             sender = frame["sender"]
             if sender == self.cfg.node_id:
+                continue
+            if frame["type"] == MESH_PEER:
+                self.metrics["peer_msgs_received"] += 1
+                self._call(self._on_peer_message, sender, frame.get("payload") or {})
                 continue
 
             p = frame.get("payload") or {}
@@ -598,6 +638,7 @@ class MeshNode:
                 load=int(p.get("load", 0)),
                 capacity=int(p.get("capacity", 0)),
                 last_seen=time.monotonic(),
+                addr=(src_ip, src_port),
             )
             with self._lock:
                 is_new = sender not in self._peers

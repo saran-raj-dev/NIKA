@@ -210,7 +210,7 @@ ATLAS/backend/atlas/services/commands.py      writebacks + raw commands
 
 **Rule:** anything that is about *the protocol* (crypto, framing, sessions, acks, relaying, de-duplication) goes into NIKA and is re-vendored. Anything that is about *an application* (which keys are allowed, how data is stored, what a topic means, UI) goes into the application, through NIKA's callbacks. That is why NIKA's server takes `authorize`, `on_data` and `on_route` callables instead of a database.
 
-**Preferred:** install NIKA as a package (`pip install "nika-protocol @ git+https://github.com/saran-raj-dev/NIKA@v1.0.0"`) and import `nika.*`. Vendoring still works: copy `nika/{secure,uplink,mesh,protocol.py,envelope.py}` plus the specs. Imports inside NIKA are relative, so the copy works under any package name.
+**Preferred:** install NIKA as a package (`pip install "nika-protocol @ git+https://github.com/saran-raj-dev/NIKA@v1.1.0"`) and import `nika.*`. Vendoring still works: copy `nika/{secure,uplink,mesh,protocol.py,envelope.py}` plus the specs. Imports inside NIKA are relative, so the copy works under any package name.
 
 ## B2. NSC: the secure channel (`nika.secure`)
 

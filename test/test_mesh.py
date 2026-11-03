@@ -849,3 +849,59 @@ def test_malformed_challenges_and_claims():
     # a low-order "public key" can never be proven
     ch = mesh_identity.Challenge(relay_id="r", origin_id="o", identity=b"\x00" * 32, meta={})
     assert ch.verify("00" * 32) is False
+
+
+# =================================================
+# Peer messages
+# =================================================
+
+def test_peer_message_reaches_one_or_all_peers(mesh):
+    a, b, c = mesh.build("a", "b", "c")
+    got = {"b": [], "c": []}
+    b.on_peer_message(lambda sender, payload: got["b"].append((sender, payload)))
+    c.on_peer_message(lambda sender, payload: got["c"].append((sender, payload)))
+    mesh.start(a, b, c)
+    assert wait_for(lambda: len(a.peers()) == 2)
+
+    a.peer_send({"n": 1})
+    assert wait_for(lambda: got["b"] and got["c"])
+    assert got["b"] == [("a", {"n": 1})] and got["c"] == [("a", {"n": 1})]
+
+    a.peer_send({"n": 2}, to="c")
+    assert wait_for(lambda: len(got["c"]) == 2)
+    time.sleep(0.2)
+    assert len(got["b"]) == 1
+
+
+def test_peer_message_works_while_uplink_is_down(mesh):
+    a, b = mesh.build("a", "b")
+    got = []
+    b.on_peer_message(lambda sender, payload: got.append(payload))
+    mesh.start(a, b)
+    assert wait_for(lambda: a.peers())
+    a.set_uplink(False)
+    a.peer_send({"n": 1})
+    assert wait_for(lambda: got == [{"n": 1}])
+
+
+def test_peer_message_too_big_is_refused(mesh):
+    a, = mesh.build("a")
+    with pytest.raises(ValueError):
+        a.peer_send({"x": "y" * 2000})
+
+
+def test_peer_message_with_wrong_key_is_ignored(mesh):
+    a, b = mesh.build("a", "b")
+    got = []
+    a.on_peer_message(lambda sender, payload: got.append(payload))
+    mesh.start(a, b)
+    assert wait_for(lambda: b.peers())
+    target = b.peers()[0]
+    raw = seal({"nika": 1, "type": "MESH_PEER", "id": "x", "ts": time.time(), "sender": "b",
+                "payload": {"n": 1}}, b"another-key-0123456789")
+    host, port = target["endpoint"].split("://")[1].split(":")[0], a.cfg.discovery_port
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.sendto(raw, (host, port))
+    s.close()
+    time.sleep(0.3)
+    assert got == []
