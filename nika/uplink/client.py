@@ -33,6 +33,7 @@ import zmq.asyncio
 from ..mesh.commands import ACCEPT, CommandGuard
 from ..protocol import *
 from ..secure import ClientHandshake, NSCError, Session, StaticKey, fingerprint, parse_psk
+from .files import FILE_MESSAGES, Accept, FileEngine, FileResult, OnFile
 from .common import (
     K_DATA, K_ERROR, K_HANDSHAKE1, K_HANDSHAKE2, MAX_FRAME, Command, UplinkError,
     UplinkUnavailable, decode, encode, get_payload, put_payload,
@@ -64,8 +65,13 @@ class NikaUplinkClient:
         ack_timeout: float = 15.0,
         max_backoff: float = 30.0,
         psk: bytes | str | None = None,
+        on_file_offer: "Accept | None" = None,
+        on_file: "OnFile | None" = None,
     ):
         self.key = key
+        self.files = FileEngine(accept=on_file_offer, on_file=on_file)
+        self._file_queue: asyncio.Queue | None = None
+        self._file_worker: asyncio.Task | None = None
         self.server_public = server_public
         self._psk = parse_psk(psk)
         self.endpoint = endpoint
@@ -114,6 +120,8 @@ class NikaUplinkClient:
         if self._task is None or self._task.done():
             self._stopping = False
             self._ctx = zmq.asyncio.Context()
+            self._file_queue = asyncio.Queue(maxsize=1000)
+            self._file_worker = asyncio.create_task(self._file_loop(), name="nika-uplink-files")
             self._task = asyncio.create_task(self._run(), name="nika-uplink-client")
 
     async def stop(self):
@@ -121,10 +129,11 @@ class NikaUplinkClient:
         if self._session is not None:
             with contextlib.suppress(Exception):
                 await self._send({"t": UPLINK_BYE})
-        if self._task is not None:
-            self._task.cancel()
-            with contextlib.suppress(asyncio.CancelledError, Exception):
-                await self._task
+        for t in (self._task, self._file_worker):
+            if t is not None:
+                t.cancel()
+                with contextlib.suppress(asyncio.CancelledError, Exception):
+                    await t
         self._close_socket()
         if self._ctx is not None:
             self._ctx.term()
@@ -159,6 +168,21 @@ class NikaUplinkClient:
             msg["origin"] = origin
         await self._request(msg_id, msg, timeout)
         return msg_id
+
+    async def send_file(self, path: str, **kw) -> "FileResult":
+        """Send a file to the platform; returns once the platform verified it.
+        Resumes after a reconnect. kw: name, meta, fid, sha256, ack_timeout,
+        resume_timeout, progress (see FileEngine.send_file)."""
+        return await self.files.send_file(path, send=self._send, wait_ready=self.wait_connected, **kw)
+
+    async def _file_loop(self):
+        assert self._file_queue is not None
+        while True:
+            msg = await self._file_queue.get()
+            try:
+                await self.files.handle(msg, self._send)
+            except Exception:
+                log.exception("uplink: file message failed")
 
     async def announce_route(self, origin: str, active: bool, *, timeout: float | None = None) -> bool:
         """Tell the server we carry (or stopped carrying) origin's traffic.
@@ -221,6 +245,7 @@ class NikaUplinkClient:
                 self.connected_since = None
                 self._close_socket()
                 self._fail_pending(ERR_UPLINK_UNAVAILABLE)
+                self.files.link_lost()
             if self._stopping:
                 break
             if not refused:
@@ -286,8 +311,14 @@ class NikaUplinkClient:
                 last_ping = now
             if now - self._last_rx > self.timeout:
                 raise ConnectionError("server stopped answering")
-            if await self._sock.poll(500):
-                await self._handle_frames(await self._sock.recv_multipart())
+            # recv with its own timeout, not sock.poll(): a poll on a socket that
+            # another task is sending large frames on can miss its wake-up and
+            # never return, and then a dead server is never noticed
+            try:
+                frames = await asyncio.wait_for(self._sock.recv_multipart(), 0.5)
+            except asyncio.TimeoutError:
+                continue
+            await self._handle_frames(frames)
 
     async def _handle_frames(self, frames: list[bytes]):
         if len(frames) != 2:
@@ -326,6 +357,11 @@ class NikaUplinkClient:
                     fut.set_exception(UplinkError(str(msg.get("reason") or "rejected")))
         elif t == UPLINK_CMD:
             asyncio.create_task(self._handle_command(msg))
+        elif t in FILE_MESSAGES and self._file_queue is not None:
+            try:
+                self._file_queue.put_nowait(msg)     # in order, off the receive loop
+            except asyncio.QueueFull:
+                pass                                 # the sender times out and resumes
         elif t == UPLINK_BYE:
             raise ConnectionError("server closed the session")
 

@@ -77,6 +77,14 @@ UPLINK_PONG = "UPLINK_PONG"
 UPLINK_BYE = "UPLINK_BYE"                # either side: session ends
 
 # ---- Uplink error codes ----
+# File transfer over the uplink session (see UPLINK.md §5, nika/uplink/files.py)
+UPLINK_FILE_OFFER = "UPLINK_FILE_OFFER"      # sender -> receiver: name, size, sha256, meta
+UPLINK_FILE_ACCEPT = "UPLINK_FILE_ACCEPT"    # receiver -> sender: ok + offset (resume) | reason
+UPLINK_FILE_CHUNK = "UPLINK_FILE_CHUNK"      # sender -> receiver: bytes at an offset
+UPLINK_FILE_ACK = "UPLINK_FILE_ACK"          # receiver -> sender: bytes held so far
+UPLINK_FILE_DONE = "UPLINK_FILE_DONE"        # receiver -> sender: verified (sha256) | reason
+UPLINK_FILE_CANCEL = "UPLINK_FILE_CANCEL"    # either side: abandon the transfer
+
 ERR_UPLINK_NOT_AUTHORISED = "UPLINK_NOT_AUTHORISED"    # unknown client key
 ERR_UPLINK_ORIGIN_DENIED = "UPLINK_ORIGIN_DENIED"      # may not carry data for that origin
 ERR_UPLINK_STORE_FAILED = "UPLINK_STORE_FAILED"        # server could not store it; retry later

@@ -37,6 +37,7 @@ import zmq.asyncio
 
 from ..protocol import *
 from ..secure import NSCError, ServerHandshake, Session, StaticKey, fingerprint, parse_psk
+from .files import FILE_MESSAGES, Accept, FileEngine, FileError, FileResult, OnFile
 from .common import (
     K_DATA, K_ERROR, K_HANDSHAKE1, K_HANDSHAKE2, MAX_FRAME, DataMessage,
     decode, encode, get_payload, put_payload,
@@ -78,8 +79,11 @@ class NikaUplinkServer:
         session_timeout: float = 30.0,
         max_skew: float = 120.0,
         psk: bytes | str | None = None,
+        on_file_offer: Accept | None = None,
+        on_file: OnFile | None = None,
     ):
         self.key = key
+        self.files = FileEngine(accept=on_file_offer, on_file=on_file)
         self._psk = parse_psk(psk)                     # validate now, not on the first connect
         self.bind = bind
         self._authorize = authorize
@@ -195,6 +199,27 @@ class NikaUplinkServer:
         self.metrics["commands_sent"] += 1
         return route
 
+    async def send_file(self, peer_id: str, path: str, *, ready_timeout: float | None = None, **kw) -> FileResult:
+        """Send a file to a directly connected peer; returns once the peer
+        verified it. Resumes if the peer reconnects within resume_timeout.
+        kw: name, meta, fid, sha256, ack_timeout, resume_timeout, progress."""
+        if peer_id not in self._by_peer and self._routes.get(peer_id):
+            raise FileError("peer is relayed through the mesh; file transfer needs its own session")
+
+        async def send(msg: dict) -> bool:
+            conn = self._by_peer.get(peer_id)
+            return conn is not None and await self._send_session(conn, msg)
+
+        async def wait_ready(timeout: float) -> bool:
+            end = time.monotonic() + (ready_timeout if ready_timeout is not None else timeout)
+            while peer_id not in self._by_peer:
+                if time.monotonic() >= end:
+                    return False
+                await asyncio.sleep(0.2)
+            return True
+
+        return await self.files.send_file(path, send=send, wait_ready=wait_ready, peer_id=peer_id, **kw)
+
     # =================================================
     # Receive
     # =================================================
@@ -287,6 +312,11 @@ class NikaUplinkServer:
             conn.meta = msg.get("meta") if isinstance(msg.get("meta"), dict) else {}
             await self._send_session(conn, {"t": UPLINK_WELCOME, "peer_id": conn.peer_id})
             await self._call(self._on_session, conn.peer_id, True, dict(conn.meta))
+        elif t in FILE_MESSAGES:
+            try:
+                conn.queue.put_nowait(msg)       # in order, with the peer's data
+            except asyncio.QueueFull:
+                pass                             # the sender times out and resumes
         elif t in (UPLINK_DATA, UPLINK_ROUTE):
             try:
                 conn.queue.put_nowait(msg)       # handled in order by the worker
@@ -303,8 +333,15 @@ class NikaUplinkServer:
     async def _worker(self, conn: _Conn):
         while True:
             msg = await conn.queue.get()
-            if msg.get("t") == UPLINK_DATA:
+            t = msg.get("t")
+            if t == UPLINK_DATA:
                 await self._process_data(conn, msg)
+            elif t in FILE_MESSAGES:
+                try:
+                    await self.files.handle(msg, lambda m, c=conn: self._send_session(c, m),
+                                            peer_id=conn.peer_id)
+                except Exception:
+                    log.exception("uplink: file message from %s failed", conn.peer_id)
             else:
                 await self._process_route(conn, msg)
 
@@ -386,6 +423,7 @@ class NikaUplinkServer:
             await self._call(self._on_route, conn.peer_id, origin, False)
         if conn.peer_id and self._by_peer.get(conn.peer_id) is conn:
             del self._by_peer[conn.peer_id]
+            self.files.link_lost(conn.peer_id)
             await self._call(self._on_session, conn.peer_id, False, dict(conn.meta))
         log.info("uplink: %s disconnected (%s)", conn.peer_id, why)
 
